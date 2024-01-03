@@ -273,7 +273,7 @@ class Board:
                     return True
         return False
     
-    def dump(self):
+    def boardToString(self):
         # Define the empty board representation
         board_lines = [
             "O - - O - - O",
@@ -306,7 +306,7 @@ class Board:
         # Join all the lines into a single string
         return "\n".join(board_with_labels)
     
-    def dumpFEN(self):
+    def boardToFEN(self):
         fen = ''
         for pos in adjacency_list:
             piece = self.getCell(pos)
@@ -315,7 +315,7 @@ class Board:
         return fen
 
     @classmethod
-    def loadFEN(cls, fen):
+    def boardFromFEN(cls, fen):
         board_state, currentTurn, o1, o2 = fen.split()
         player1 = Player('W', 'w')
         player2 = Player('B', 'b')

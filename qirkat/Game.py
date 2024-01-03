@@ -10,7 +10,7 @@ class Qirkat( GameBase ):
     
     @classmethod
     def getPossibleMoves( cls, repr ):
-        board = Board.loadFEN( repr )
+        board = Board.boardFromFEN( repr )
         res = []
         for x1 in range( board.columns ):
             for y1 in range( board.rows ):
@@ -23,21 +23,21 @@ class Qirkat( GameBase ):
                     if board.canMove(piece, x1+dx, y1+dy):
                         if not board.move(piece, x1+dx, y1+dy):
                             assert(False)
-                        res.append( (board.dumpFEN(), f'{XY2POS(x1,y1)}{XY2POS(x1+dx,y1+dy)}') )
-                        board = Board.loadFEN( repr )
+                        res.append( (board.boardToFEN(), f'{XY2POS(x1,y1)}{XY2POS(x1+dx,y1+dy)}') )
+                        board = Board.boardFromFEN( repr )
                         piece = board.getCell( x1, y1 )
                 for (cx, cy), (gx, gy) in piece.getPossibleCaptures():
                     if board.canMove(piece, x1+gx, y1+gy):
                         if not board.move(piece, x1+gx, y1+gy):
                             assert(False)
-                        res.append( (board.dumpFEN(), f'{XY2POS(x1,y1)}{XY2POS(x1+gx,y1+gy)}') )
-                        board = Board.loadFEN( repr )
+                        res.append( (board.boardToFEN(), f'{XY2POS(x1,y1)}{XY2POS(x1+gx,y1+gy)}') )
+                        board = Board.boardFromFEN( repr )
                         piece = board.getCell( x1, y1 )
         return res
     
     @classmethod
     def getScore(cls, repr):
-        board = Board.loadFEN(repr)
+        board = Board.boardFromFEN(repr)
         score = 0
 
         for x in range(5):
@@ -53,12 +53,12 @@ class Qirkat( GameBase ):
     
     @classmethod
     def isGameOver( cls, repr ):
-        board = Board.loadFEN( repr )
+        board = Board.boardFromFEN( repr )
         return board.isGameOver()
     
     @classmethod
     def winner( cls, repr ):
-        board = Board.loadFEN( repr )
+        board = Board.boardFromFEN( repr )
         assert( board.isGameOver() )
         if board.isDraw():
             return 0
@@ -70,7 +70,7 @@ class Qirkat( GameBase ):
     def __init__( self, player1, player2 ):
         self.player1 = Player(player1, 'white')
         self.player2 = Player(player2, 'black')
-        self.board = Board( player1, player2 ).loadFEN( self.getInitialRepr() )
+        self.board = Board( player1, player2 ).boardFromFEN( self.getInitialRepr() )
     
     def parseInput( self, moveInput ):
         if 4 <= len(moveInput) <= 5:
@@ -104,7 +104,7 @@ class Qirkat( GameBase ):
     
     def run(self):
         while not self.chessboard.isGameOver():
-            print( self.chessboard.dump() )
+            print( self.chessboard.boardToString() )
             moveInput = self.getInput()
             status = self.chessboard.play(*moveInput)
             if status == True:

@@ -33,11 +33,11 @@ ai = DfsAI( gameClass )
 game = gameClass( 'White', 'Black' )
 
 while True:
-    print( game.board.dump() )
+    print( game.board.boardToString() )
     print( game.board.currentTurn.color )
     if game.board.isGameOver():
         print('Checkmate:', game.board.isCheckmate( game.board.currentTurn ))
         break
-    _, move = ai.findBestMove( game.board.dumpFEN(), 0, game.board.currentTurn.color=='white' )
-    print( game.board.dumpFEN(), move )
+    _, move = ai.findBestMove( game.board.boardToFEN(), 0, game.board.currentTurn.color=='white' )
+    print( game.board.boardToFEN(), move )
     game.play( move )

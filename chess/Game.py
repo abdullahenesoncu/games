@@ -99,7 +99,7 @@ class Chess( GameBase ):
     
     @classmethod
     def getPossibleMoves( cls, repr ):
-        board = Board.loadFEN( repr )
+        board = Board.boardFromFEN( repr )
         res = []
 
         if board.isGameOver():
@@ -125,22 +125,22 @@ class Chess( GameBase ):
                                 except:
                                     print(board.wouldBeInCheck( board.getCell(X,Y), x, y ))
                                     print(board.getCell(X,Y))
-                                    print( board.dump() )
-                                    print(board.dumpFEN())
+                                    print( board.boardToString() )
+                                    print(board.boardToFEN())
                                     print( f'{XY2POS( pieceX, pieceY )}{XY2POS( x, y )}',  board.getCell( X, Y ).player.color, board.currentTurn.color )
                                     assert(False)
-                                res.append( ( board.dumpFEN(), f'{XY2POS( pieceX, pieceY )}{XY2POS( x, y )}{additionalInput or ""}' ) )
-                                board = Board.loadFEN( repr )
+                                res.append( ( board.boardToFEN(), f'{XY2POS( pieceX, pieceY )}{XY2POS( x, y )}{additionalInput or ""}' ) )
+                                board = Board.boardFromFEN( repr )
         return res
     
     @classmethod
     def isGameOver( cls, repr ):
-        board = Board.loadFEN( repr )
+        board = Board.boardFromFEN( repr )
         return board.isGameOver()
     
     @classmethod
     def winner( cls, repr ):
-        board = Board.loadFEN( repr )
+        board = Board.boardFromFEN( repr )
         assert( board.isGameOver() )
         if board.isDraw():
             return 0
@@ -151,7 +151,7 @@ class Chess( GameBase ):
     
     @classmethod
     def getScore(cls, repr):
-        board = Board.loadFEN(repr)
+        board = Board.boardFromFEN(repr)
         score = 0
         is_endgame = len(board.pieces) < endgame_threshold
 
@@ -207,7 +207,7 @@ class Chess( GameBase ):
 
     @classmethod
     def distanceToEnd(cls, boardRepr):
-        board = Board.loadFEN(boardRepr)
+        board = Board.boardFromFEN(boardRepr)
 
         # Factors influencing the distance to the end of the game
         total_material = sum(piece_values[type(piece)] for piece in board.pieces)
@@ -358,7 +358,7 @@ class Chess( GameBase ):
     def __init__( self, player1, player2 ):
         self.player1 = Player(player1, 'white')
         self.player2 = Player(player2, 'black')
-        self.board = Board( player1, player2 ).loadFEN( self.getInitialRepr() )
+        self.board = Board( player1, player2 ).boardFromFEN( self.getInitialRepr() )
     
     def parseInput( self, moveInput ):
         if 4 <= len(moveInput) <= 5:
@@ -380,7 +380,7 @@ class Chess( GameBase ):
 
     def run(self):
         while not self.board.isGameOver():
-            print( self.board.dump() )
+            print( self.board.boardToString() )
             moveInput = self.getInput()
             status = self.board.play(*moveInput)
             if status == True:

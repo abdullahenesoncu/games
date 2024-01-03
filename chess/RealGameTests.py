@@ -7,7 +7,7 @@ import chess.pgn
 
 class RealGameTests(unittest.TestCase):
     def setUp(self):
-        self.chessboard = Board.loadFEN(Chess.getInitialRepr())
+        self.chessboard = Board.boardFromFEN(Chess.getInitialRepr())
 
     def fileTest(self, filename):
         pgn = open( filename )
@@ -18,7 +18,7 @@ class RealGameTests(unittest.TestCase):
             board = game.board()
             self.setUp()
             for move in game.mainline_moves():
-                prev = self.chessboard.dump()
+                prev = self.chessboard.boardToString()
                 r = self.chessboard.play( str(move)[:2], str(move)[2:4], str(move)[4:] or None )
                 board.push( move )
                 expectedBoard = ['  a b c d e f g h'] + str(board).split('\n')
@@ -31,19 +31,19 @@ class RealGameTests(unittest.TestCase):
                 expectedBoard[7] = '2 ' + expectedBoard[7]
                 expectedBoard[8] = '1 ' + expectedBoard[8]
                 expectedBoard = '\n'.join(expectedBoard)
-                if not r or expectedBoard != self.chessboard.dump():
+                if not r or expectedBoard != self.chessboard.boardToString():
                     print()
                     print("=====PREV=====")
                     print(prev)
                     print("=====Move=====")
                     print(move, r)
                     print("=====Found====")
-                    print(self.chessboard.dump())
-                    print(self.chessboard.dumpFEN())
+                    print(self.chessboard.boardToString())
+                    print(self.chessboard.boardToFEN())
                     print("====Expected==")
                     print(expectedBoard)
                     print(board.fen())
-                self.assertEqual( expectedBoard, self.chessboard.dump() )
+                self.assertEqual( expectedBoard, self.chessboard.boardToString() )
                 self.assertTrue( r )
     
     def test_NajdorfTests(self):

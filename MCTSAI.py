@@ -115,16 +115,16 @@ class MCTSAI:
             return -self.gameClass.getScore(repr)
 
 if __name__ == '__main__':
-    gameClass = NineMenMorris
+    gameClass = Checker
     ai1 = MCTSAI(gameClass)
     ai2 = MCTSAI(gameClass)
 
     game = gameClass( 'White', 'Black' )
 
     while True:
-        print( game.board.dump() )
-        if game.isGameOver(game.board.dumpFEN()):
-            winner = game.winner(game.board.dumpFEN())
+        print( game.board.boardToString() )
+        if game.isGameOver(game.board.boardToFEN()):
+            winner = game.winner(game.board.boardToFEN())
             if winner == 1:
                 print( 'White wins' )
             if winner == -1:
@@ -133,7 +133,7 @@ if __name__ == '__main__':
                 print( 'Draw' )
             break
         if game.board.currentTurn == game.board.players[0]:
-            move = ai1.findBestMove( game.board.dumpFEN(), game.board.currentTurn == game.board.players[0] )
+            move = ai1.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
         else:
-            move = ai2.findBestMove( game.board.dumpFEN(), game.board.currentTurn == game.board.players[0] )
+            move = ai2.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
         game.play( move )

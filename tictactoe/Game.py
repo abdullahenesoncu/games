@@ -20,20 +20,21 @@ class TicTacToe ( GameBase ):
 
     @classmethod
     def getInitialRepr( cls, n=3 ):
+        # like '.../.../... x'
         return '/'.join( ['.'*n]*n ) + ' x'
 
     @classmethod
     def isGameOver(cls, repr):
-        return Board.loadFEN(repr).gameStatus() in ['o', 'x', 'draw']
+        return Board.boardFromFEN(repr).gameStatus() in ['o', 'x', 'draw']
 
     @classmethod
     def winner(cls, repr):
-        s = Board.loadFEN(repr).gameStatus()
+        s = Board.boardFromFEN(repr).gameStatus()
         return 1 if s == 'x' else (-1 if s == 'o' else 0)
 
     @classmethod
     def getScore(cls, repr):
-        board = Board.loadFEN(repr)
+        board = Board.boardFromFEN(repr)
         gameStatus = board.gameStatus()
 
         if gameStatus == board.players[0].color:
@@ -47,22 +48,20 @@ class TicTacToe ( GameBase ):
 
     @classmethod
     def getPossibleMoves(cls, repr):
-        board = Board.loadFEN(repr)
+        board = Board.boardFromFEN(repr)
         possible_moves = []
 
-        for i in range(0, 3):
-            for j in range(0, 3):
+        for i in range(board.n):
+            for j in range(board.n):
                 if board.canMakeMove(i, j):
                     board.makeMove(i, j)
-                    possible_moves.append((board.dumpFEN(), f'{chr(ord("a")+i)}{3-j}'))
-                    board = Board.loadFEN(repr)
-
+                    possible_moves.append((board.boardToFEN(), f'{chr(ord("a")+i)}{3-j}'))
+                    board = Board.boardFromFEN(repr)
+    
         return possible_moves
 
     def play( self, input ):
-        print("AAA", input)
         input = self.parseInput(input)
-        print("AAA", input)
         status = self.board.makeMove(*input)
         assert( status )
 
@@ -76,7 +75,7 @@ class TicTacToe ( GameBase ):
         moveInput = None
         # Loop until a valid move is entered
         while moveInput is None:
-            moveInput = self.parseInput(input(f'Please Enter Your Move ({self.board.currentTurn.name}): '))
+            moveInput = self.parseInput(input(f'Please Enter Your Move (like a1, c2) ({self.board.currentTurn.name}): '))
         return moveInput
 
     def parseInput(self, moveInput):
@@ -90,7 +89,7 @@ class TicTacToe ( GameBase ):
         tuple: The parsed move (row, column) or None if invalid.
         """
         if len(moveInput) == 2 and 0<=ord(moveInput[0])-ord('a')<self.n and 0<int(moveInput[1])<=self.n:
-          return ord(moveInput[0])-ord('a'), self.n - int(moveInput[1])
+            return ord(moveInput[0])-ord('a'), self.n - int(moveInput[1])
         return None
 
     def run(self):
@@ -99,7 +98,7 @@ class TicTacToe ( GameBase ):
         """
         # Loop until the game is over
         while True:
-            print(self.board.dump())  # Display the board
+            print(self.board.boardToString())  # Display the board
             if self.board.gameStatus() != 'ongoing': break
 
             moveInput = self.getInput()  # Get user input, in format like a1, b3
@@ -112,8 +111,8 @@ class TicTacToe ( GameBase ):
         gameResult = self.board.gameStatus()
         # Display the game result
         if gameResult == self.player1.color:
-            print(f'{self.player1.color} wins')
+            print(f'{self.player1.name} wins')
         elif gameResult == self.player2.color:
-            print(f'{self.player2.color} wins')
+            print(f'{self.player2.name} wins')
         else:
             print(' Draw! ')

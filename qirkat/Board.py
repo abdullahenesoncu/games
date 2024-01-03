@@ -131,7 +131,7 @@ class Board:
         return self.move(piece, *to_pos)
     
     @classmethod
-    def loadFEN( cls, fen ):
+    def boardFromFen( cls, fen ):
         'ccccc/ccccc/cc1CC/CCCCC/CCCCC w -'
         repr, color, cell = fen.split()
         player1 = Player( 'White', 'white' )
@@ -153,7 +153,7 @@ class Board:
         qirkatboard.pieceToPlay = None if cell == '-' else qirkatboard.getCell( *POS2XY( cell ) )
         return qirkatboard
     
-    def dumpFEN( self ):
+    def boardToFEN(self):
         board_repr = []
         for j in reversed( range( 5 ) ):
             empty_count = 0
@@ -184,7 +184,7 @@ class Board:
 
         return f"{fen_repr} {color} {cell}"
     
-    def dump(self):
+    def boardToString(self):
         # Initialize an 5x5 matrix with dots
         board = [['.' for _ in range(5)] for _ in range(5)]
 

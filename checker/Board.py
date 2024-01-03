@@ -35,7 +35,7 @@ class Board:
             if ( x-piece.x, y-piece.y ) in piece.getPossibleDirections() and self.getCell(x, y) is None:
                 return True
         for ( cx, cy ), ( gx, gy ) in piece.getPossibleCaptures():
-            if gx == x - piece.x and gy == y - piece.y:
+            if piece.x + gx == x and piece.y + gy == y:
                 if self.getCell( x, y ):
                     return False
                 c = self.getCell( piece.x + cx, piece.y + cy ) 
@@ -47,7 +47,6 @@ class Board:
                 nextMaxCaptures = self.findCapturesFromPosition(piece, x, y)
                 self.undoCapture(piece, capturedPiece, (ox, oy))
                 if maxCaptures != nextMaxCaptures + 1:
-                    print(maxCaptures , XY2POS(ox,oy), XY2POS(x,y), nextMaxCaptures)
                     return False
                 return True
         return False
@@ -55,7 +54,7 @@ class Board:
     def move( self, piece, x, y ):
         if not self.canMove( piece, x, y ):
             return False
-        if ( x-piece.x, y-piece.y ) in piece.getPossibleDirections() and self.getCell(x, y) is None:
+        if ( x-piece.x, y-piece.y ) in piece.getPossibleDirections():
             piece.x = x
             piece.y = y
             if piece.direction == 1 and piece.y == 7:
@@ -65,7 +64,7 @@ class Board:
             self.switchTurn()
             return True
         for ( cx, cy ), ( gx, gy ) in piece.getPossibleCaptures():
-            if gx == x - piece.x and gy == y - piece.y:
+            if piece.x + gx == x and piece.y + gy == y:
                 self.simulateCapture(piece, piece.x+gx, piece.y+gy, piece.x+cx, piece.y+cy)
                 maxCaptures = self.findCapturesFromPosition(piece, piece.x, piece.y)
                 if piece.direction == 1 and piece.y == 7:
@@ -98,8 +97,8 @@ class Board:
     def findCapturesFromPosition(self, piece, x, y):
         max_captures = 0
 
-        for (dx, dy), (gx, gy) in piece.getPossibleCaptures():
-            capture_x, capture_y = x + dx, y + dy
+        for (cx, cy), (gx, gy) in piece.getPossibleCaptures():
+            capture_x, capture_y = x + cx, y + cy
             jump_x, jump_y = x + gx, y + gy
             if jump_x<0 or jump_x>=self.columns or jump_y<0 or jump_y>=self.rows: continue
             if self.getCell(jump_x, jump_y) is None and self.getCell(capture_x, capture_y) and self.getCell(capture_x, capture_y).player.color != piece.player.color:
@@ -147,7 +146,7 @@ class Board:
         return self.move(piece, *to_pos)
     
     @classmethod
-    def loadFEN( cls, fen ):
+    def boardFromFEN( cls, fen ):
         'c1c1c1c1/1c1c1c1c/c1c1c1c1/8/8/1C1C1C1C/C1C1C1C1/1C1C1C1C w -'
         repr, color, cell = fen.split()
         player1 = Player( 'White', 'white' )
@@ -169,7 +168,7 @@ class Board:
         checkerboard.pieceToPlay = None if cell == '-' else checkerboard.getCell( *POS2XY( cell ) )
         return checkerboard
     
-    def dumpFEN( self ):
+    def boardToFEN(self):
         board_repr = []
         for j in reversed( range( 8 ) ):
             empty_count = 0
@@ -202,7 +201,7 @@ class Board:
 
         return f"{fen_repr} {color} {cell}"
     
-    def dump(self):
+    def boardToString(self):
         # Initialize an 8x8 matrix with dots
         board = [['.' for _ in range(8)] for _ in range(8)]
 

@@ -34,7 +34,11 @@ class Board:
         """
         Toggles the turn to the other player.
         """
-        self.currentTurn = self.players[0] if self.currentTurn == self.players[1] else self.players[1]
+        if self.currentTurn == self.players[1]:
+            self.currentTurn = self.players[0]
+        else:
+            self.currentTurn = self.players[1]
+        # self.currentTurn = self.players[0] if self.currentTurn == self.players[1] else self.players[1]
 
     def makeMove(self, x, y):
         """
@@ -65,59 +69,85 @@ class Board:
         # Check for rows
         for row in range( self.n ):
           for column in range( self.n-2 ):
-            if ( self.board[row][column] and
+            if ( self.board[row][column] is not None and
                 self.board[row][column] == self.board[row][column+1] == self.board[row][column+2] ):
               return self.board[row][column]
 
         # Check for columns
         for row in range( self.n-2 ):
           for column in range( self.n ):
-            if self.board[row][column] and self.board[row][column] == self.board[row+1][column] == self.board[row+2][column]:
+            if ( self.board[row][column]  is not None and
+                self.board[row][column] == self.board[row+1][column] == self.board[row+2][column] ):
               return self.board[row][column]
 
         # Check for left diagonals
         for row in range( self.n-2 ):
           for column in range( self.n-2 ):
-            if self.board[row][column] and self.board[row][column] == self.board[row+1][column+1] == self.board[row+2][column+2]:
+            if ( self.board[row][column] is not None and
+                self.board[row][column] == self.board[row+1][column+1] == self.board[row+2][column+2] ):
               return self.board[row][column]
 
         # Check for right diagonals
         for row in range( 2, self.n ):
           for column in range( self.n-2 ):
-            if self.board[row][column] and self.board[row][column] == self.board[row-1][column+1] == self.board[row-2][column+2]:
+            if ( self.board[row][column] is not None and
+                self.board[row][column] == self.board[row-1][column+1] == self.board[row-2][column+2] ):
               return self.board[row][column]
 
         # Check draw condition, if all cells are non-empty
-        if all( [ c is not None for row in self.board for c in row ] ):
-          return 'draw'
+        # if all( [ c is not None for row in self.board for c in row ] ):
+        #       return 'draw'
+        for row in self.board:
+           for c in row:
+              if c is None:
+                 return 'ongoing'
+        return 'draw'
 
-        return 'ongoing'  # The game is still ongoing
-
-    def dump(self):
+    def boardToString(self):
         """
         Creates a string representation of the current board state.
 
         Returns:
         str: The board state as a multi-line string.
         """
-        res = ""
+        res = "" # result
         header = [" "]
         for i in range(self.n): header.append( chr(ord('a')+i) )
         res += ' '.join(header) + '\n'
         for i in range(self.n):
-          row = [ str( self.n-i ) ]
-          for j in range(self.n):
-            c = self.board[i][j]
-            row.append( c if c else '.' )
-          res += ' '.join(row) + '\n'
+            row = [ str( self.n-i ) ]
+            for j in range(self.n):
+                c = self.board[i][j]
+                if c is not None:
+                  row.append( c )
+                else:
+                  row.append( '.' )
+                #row.append( c if c else '.' )
+            res += ' '.join(row) + '\n'
+            # The join function concatenates elements of an iterable into a string,
+            # separated by the string it's called on.
+            # For example, if you call ','.join(['a', 'b', 'c']), it will return 'a,b,c',
+            # using ',' as the separator between the elements.
         return res
 
-    def dumpFEN(self):
-        fen = '/'.join([ ''.join([c if c else '.' for c in row]) for row in self.board ])
+    def boardToFEN(self):
+        #    .../.../... x
+        # or xox/x../o.. o
+        fen = ""
+        for row in self.board:
+            rowStr = ""
+            for c in row:
+                if c is not None:
+                    rowStr += c
+                else:
+                    rowStr += '.'
+            fen += rowStr + '/'
+        fen = fen[:-1]
+        # fen = '/'.join([ ''.join([c if c else '.' for c in row]) for row in self.board ])
         return fen + f' {self.currentTurn.color}'
 
     @classmethod
-    def loadFEN(cls, fen):
+    def boardFromFEN(cls, fen):
         fields = fen.split()
         if len(fields) != 2:
             raise ValueError("Invalid FEN string")
@@ -125,9 +155,15 @@ class Board:
         player1 = Player('X', 'x')
         player2 = Player('O', 'o')
         board = cls(len( fields[0].split('/') ), player1, player2)
+        # fields[0] is like xox/x../o.., fields[0].split('/') is like ["xox", "x..", "o.."]
 
-        for i, row in enumerate( fields[0].split('/') ):
-           board.board[ i ] = [ None if c=='.' else c for c in row ]
+        for i, row in enumerate( fields[0].split('/') ): # iterate on ["xox", "x..", "o.."]
+            for j, c in enumerate( row ): # iterate on "xox"
+                if c != '.':
+                    board.board[ i ][ j ] = c
+                else:
+                    board.board[ i ][ j ] = None
+            #board.board[ i ] = [ None if c=='.' else c for c in row ]
 
         board.currentTurn = player1 if fields[1] == 'x' else player2
 

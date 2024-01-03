@@ -60,17 +60,17 @@ if __name__ == '__main__':
     game = gameClass( 'White', 'Black' )
 
     while True:
-        print( game.board.dump() )
-        print( game.board.dumpFEN() )
+        print( game.board.boardToString() )
+        print( game.board.boardToFEN() )
         print( game.board.currentTurn.color )
-        ai1.updateMoveHistory( game.board.dumpFEN() )
-        ai2.updateMoveHistory( game.board.dumpFEN() )
+        ai1.updateMoveHistory( game.board.boardToFEN() )
+        ai2.updateMoveHistory( game.board.boardToFEN() )
         if game.board.isGameOver():
             print(game.board.isDraw())
             print('Checkmate:', game.board.isCheckmate( game.board.currentTurn ))
             break
         if game.board.currentTurn.color == 'white':
-            move = ai1.findBestMove( game.board.dumpFEN(), game.board.currentTurn.color == 'white' )
+            move = ai1.findBestMove( game.board.boardToFEN(), game.board.currentTurn.color == 'white' )
         else:
-            move = ai2.findBestMove( game.board.dumpFEN(), game.board.currentTurn.color == 'white' )
+            move = ai2.findBestMove( game.board.boardToFEN(), game.board.currentTurn.color == 'white' )
         game.play( move )

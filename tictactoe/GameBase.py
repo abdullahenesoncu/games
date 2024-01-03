@@ -18,3 +18,6 @@ class GameBase:
     @classmethod
     def winner(cls, repr):
         raise NotImplementedError()
+    
+    def play(self, input):
+        raise NotImplementedError()

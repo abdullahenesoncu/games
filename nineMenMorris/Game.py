@@ -10,18 +10,18 @@ class NineMenMorris(GameBase):
     
     @classmethod
     def getInitialRepr(self):
-        return Board(Player('W','w'), Player('B','b')).dumpFEN()
+        return Board(Player('W','w'), Player('B','b')).boardToFEN()
 
     @classmethod
     def isGameOver(cls, repr):
-        board = Board.loadFEN(repr)
+        board = Board.boardFromFEN(repr)
         if not board.hasMove(board.currentTurn):
             return True
         return board.getPhaseOfPlayer(board.currentTurn) == GAME_OVER
     
     @classmethod
     def winner(cls, repr):
-        board = Board.loadFEN(repr)
+        board = Board.boardFromFEN(repr)
         if not board.hasMove(board.currentTurn):
             return -1
         phase = board.getPhaseOfPlayer(board.currentTurn)
@@ -36,14 +36,14 @@ class NineMenMorris(GameBase):
     def getScore(cls, repr):
         if cls.isGameOver(repr):
             return cls.winner(repr) * 300
-        board = Board.loadFEN(repr)
+        board = Board.boardFromFEN(repr)
         p1 = len(board.getPiecesOfPlayer(board.players[0])) + board.players[0].outBoardPieces
         p2 = len(board.getPiecesOfPlayer(board.players[1])) + board.players[1].outBoardPieces
         return p1 ** 2 - p2 ** 2
 
     @classmethod
     def getPossibleMoves(cls, repr):
-        board = Board.loadFEN(repr)
+        board = Board.boardFromFEN(repr)
         moves = []
         phase = board.getPhaseOfPlayer(board.currentTurn)
         player = board.currentTurn
@@ -53,25 +53,25 @@ class NineMenMorris(GameBase):
             for pos in adjacency_list:
                 if pos not in pieces + oponentPieces:
                     board.move(pos)
-                    moves.append((board.dumpFEN(), pos))
-                    board = Board.loadFEN(repr)
+                    moves.append((board.boardToFEN(), pos))
+                    board = Board.boardFromFEN(repr)
                 for capture_pos in oponentPieces:
                     if board.canMove(pos+capture_pos):
                         board.move(pos+capture_pos)
-                        moves.append((board.dumpFEN(), pos+capture_pos))
-                        board = Board.loadFEN(repr)
+                        moves.append((board.boardToFEN(), pos+capture_pos))
+                        board = Board.boardFromFEN(repr)
         elif phase == MOVING_PHASE or phase == FLYING_PHASE:
             for pos in pieces:
                 for next_pos in adjacency_list[pos]:
                     if board.canMove(pos+next_pos):
                         board.move(pos+next_pos)
-                        moves.append((board.dumpFEN(), pos+next_pos))
-                        board = Board.loadFEN(repr)
+                        moves.append((board.boardToFEN(), pos+next_pos))
+                        board = Board.boardFromFEN(repr)
                     for capture_pos in oponentPieces:
                         if board.canMove(pos+next_pos+capture_pos):
                             board.move(pos+next_pos+capture_pos)
-                            moves.append((board.dumpFEN(), pos+next_pos+capture_pos))
-                            board = Board.loadFEN(repr)
+                            moves.append((board.boardToFEN(), pos+next_pos+capture_pos))
+                            board = Board.boardFromFEN(repr)
         return moves
 
     def play(self, input):
@@ -101,7 +101,7 @@ class NineMenMorris(GameBase):
 
     def run(self):
         while not self.isGameOver():
-            print(self.board.dump())
+            print(self.board.boardToString())
             moveInput = self.getInput()
             parsedInput = self.parseInput(moveInput)
             if parsedInput:

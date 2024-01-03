@@ -271,7 +271,7 @@ class Board:
                 return XY2POS(to_x, target_y)
         return '-'
     
-    def dump(self):
+    def boardToString(self):
         # Initialize an 8x8 matrix with dots
         board = [['.' for _ in range(8)] for _ in range(8)]
 
@@ -293,7 +293,7 @@ class Board:
 
         return '\n'.join(board_with_labels)
 
-    def dumpFEN( self ):
+    def boardToFEN(self):
         piece_symbols = {
             Pawn: 'p', Knight: 'n', Bishop: 'b', Rook: 'r', Queen: 'q', King: 'k'
         }
@@ -343,7 +343,7 @@ class Board:
         return chessboard
     
     @classmethod
-    def loadFEN(cls, fen):
+    def boardFromFEN(cls, fen):
         fields = fen.split()
         if len(fields) != 6:
             raise ValueError("Invalid FEN string")

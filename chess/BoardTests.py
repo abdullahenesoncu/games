@@ -5,7 +5,7 @@ from .Board import Board
 
 class TestBoard(unittest.TestCase):
     def setUp(self):
-        self.chessboard = Board.loadFEN(Chess.getInitialRepr())
+        self.chessboard = Board.boardFromFEN(Chess.getInitialRepr())
 
     def test_initial_board_setup(self):
         expected_board = (
@@ -19,7 +19,7 @@ class TestBoard(unittest.TestCase):
             "2 P P P P P P P P\n"
             "1 R N B Q K B N R" 
         )
-        self.assertEqual(self.chessboard.dump(), expected_board)
+        self.assertEqual(self.chessboard.boardToString(), expected_board)
 
     def test_load_board(self):
         board_string = (
@@ -34,7 +34,7 @@ class TestBoard(unittest.TestCase):
             "1 R . . . . . . R"
         )
         chessboard = Board.load( board_string )
-        self.assertEqual(chessboard.dump(), board_string)
+        self.assertEqual(chessboard.boardToString(), board_string)
 
 if __name__ == '__main__':
     unittest.main()

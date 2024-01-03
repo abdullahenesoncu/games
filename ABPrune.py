@@ -47,19 +47,19 @@ class AlphaBetaAI:
             return minEval, bestMove
 
     def heuristic(self, boardRepr):
-        return self.gameClass.getScore(boardRepr) + random.normalvariate(0,0.1)
+        return self.gameClass.getScore(boardRepr)
 
 if __name__ == '__main__':
-    gameClass = NineMenMorris
-    ai1 = AlphaBetaAI( gameClass, maxDepth=3 )
-    ai2 = AlphaBetaAI( gameClass, maxDepth=3 )
+    gameClass = TicTacToe
+    ai1 = AlphaBetaAI( gameClass, maxDepth=10 )
+    ai2 = AlphaBetaAI( gameClass, maxDepth=10 )
 
-    game = gameClass( 'White', 'Black' )
+    game = gameClass( 3, 'White', 'Black' )
 
     while True:
-        print( game.board.dump() )
-        if game.isGameOver(game.board.dumpFEN()):
-            winner = game.winner(game.board.dumpFEN())
+        print( game.board.boardToString() )
+        if game.isGameOver(game.board.boardToFEN()):
+            winner = game.winner(game.board.boardToFEN())
             if winner == 1:
                 print( 'White wins' )
             if winner == -1:
@@ -68,7 +68,7 @@ if __name__ == '__main__':
                 print( 'Draw' )
             break
         if game.board.currentTurn == game.board.players[0]:
-            move = ai1.findBestMove( game.board.dumpFEN(), game.board.currentTurn == game.board.players[0] )
+            move = ai1.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
         else:
-            move = ai2.findBestMove( game.board.dumpFEN(), game.board.currentTurn == game.board.players[0] )
+            move = ai2.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
         game.play( move )

@@ -15,14 +15,14 @@ class FENTests(unittest.TestCase):
         for testcase in data[ 'testCases' ]:
             board = chess.Board( testcase[ 'start' ][ 'fen' ] )
             for trial in testcase[ 'expected' ]:
-                chessboard = Board.loadFEN( testcase[ 'start' ][ 'fen' ] )
+                chessboard = Board.boardFromFEN( testcase[ 'start' ][ 'fen' ] )
                 move = str( board.parse_san( trial[ 'move' ] ) )
                 fromPos = move[ :2 ]
                 toPos = move[ 2:4 ]
                 additionalInput = move[ 4: ]
-                prev = chessboard.dump()
+                prev = chessboard.boardToString()
                 r = chessboard.play( fromPos, toPos, additionalInput )
-                if not r or chessboard.dumpFEN() != trial[ 'fen' ]:
+                if not r or chessboard.boardToFEN() != trial[ 'fen' ]:
                     print()
                     print("=====PREV=====")
                     print(prev)
@@ -30,10 +30,10 @@ class FENTests(unittest.TestCase):
                     print("=====Move=====")
                     print(move, r)
                     print("=====Found====")
-                    print(chessboard.dumpFEN())
+                    print(chessboard.boardToFEN())
                     print("====Expected==")
                     print(trial['fen'])
-                self.assertEqual( chessboard.dumpFEN(), trial[ 'fen' ] )
+                self.assertEqual( chessboard.boardToFEN(), trial[ 'fen' ] )
     
     def test_castling(self):
         self.fileTest( 'data/castling.json' )
