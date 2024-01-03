@@ -1,5 +1,4 @@
 from .Player import Player
-from .Move import Move
 
 class Board:
     def __init__(self, n, player1, player2):

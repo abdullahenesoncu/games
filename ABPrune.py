@@ -1,6 +1,7 @@
 from tictactoe.Game import TicTacToe
 from qirkat.Game import Qirkat
 from checker.Game import Checker
+from nineMenMorris.Game import NineMenMorris
 import random
 
 class AlphaBetaAI:
@@ -49,9 +50,9 @@ class AlphaBetaAI:
         return self.gameClass.getScore(boardRepr) + random.normalvariate(0,0.1)
 
 if __name__ == '__main__':
-    gameClass = Qirkat
-    ai1 = AlphaBetaAI( gameClass, maxDepth=5 )
-    ai2 = AlphaBetaAI( gameClass, maxDepth=5 )
+    gameClass = NineMenMorris
+    ai1 = AlphaBetaAI( gameClass, maxDepth=3 )
+    ai2 = AlphaBetaAI( gameClass, maxDepth=3 )
 
     game = gameClass( 'White', 'Black' )
 

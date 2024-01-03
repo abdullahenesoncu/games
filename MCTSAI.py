@@ -6,6 +6,7 @@ from multiprocessing import Pipe, cpu_count
 from threading import Lock
 from tictactoe.Game import TicTacToe
 from qirkat.Game import Qirkat
+from nineMenMorris.Game import NineMenMorris
 
 class Node:
     def __init__(self, board_state, gameClass, parent=None, move=None):
@@ -114,7 +115,7 @@ class MCTSAI:
             return -self.gameClass.getScore(repr)
 
 if __name__ == '__main__':
-    gameClass = Qirkat
+    gameClass = NineMenMorris
     ai1 = MCTSAI(gameClass)
     ai2 = MCTSAI(gameClass)
 

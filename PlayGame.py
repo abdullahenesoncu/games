@@ -1,3 +1,5 @@
-from tictactoe.Game import TicTacToe
+#from tictactoe.Game import TicTacToe
 
-TicTacToe(3, 'Alice', 'Bob').run()
+#TicTacToe(3, 'Alice', 'Bob').run()
+
+import nineMenMorris.Board
