@@ -278,9 +278,9 @@ class Board:
         board_lines = [
             "O - - O - - O",
             "| O - O - O |",
-            "+ | O O O | |",
+            "| | O O O | |",
             "O O O   O O O",
-            "+ | O O O | |",
+            "| | O O O | |",
             "| O - O - O |",
             "O - - O - - O"
         ]
