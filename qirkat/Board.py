@@ -29,15 +29,24 @@ class Board:
         if x < 0 or x >= self.columns or y < 0 or y >= self.rows:
             return False
         maxCaptures = self.findCapturesFromPosition(piece, piece.x, piece.y)
+        if not self.pieceToPlay and self.findMaxCapturesForCurrentPlayer() != maxCaptures:
+            return False
         if not self.pieceToPlay and maxCaptures == 0:
             if ( x-piece.x, y-piece.y ) in piece.getPossibleDirections() and self.getCell(x, y) is None:
                 return True
         for ( cx, cy ), ( gx, gy ) in piece.getPossibleCaptures():
-            if gx == x - piece.x and gy == y - piece.y:
+            if piece.x + gx == x and piece.y + gy == y:
                 if self.getCell( x, y ):
                     return False
                 c = self.getCell( piece.x + cx, piece.y + cy ) 
                 if c is None or c.player == self.currentTurn:
+                    return False
+                ox = piece.x
+                oy = piece.y
+                capturedPiece, _ = self.simulateCapture(piece, x, y, piece.x+cx, piece.y+cy)
+                nextMaxCaptures = self.findCapturesFromPosition(piece, x, y)
+                self.undoCapture(piece, capturedPiece, (ox, oy))
+                if maxCaptures != nextMaxCaptures + 1:
                     return False
                 return True
         return False
@@ -45,13 +54,13 @@ class Board:
     def move( self, piece, x, y ):
         if not self.canMove( piece, x, y ):
             return False
-        if ( x-piece.x, y-piece.y ) in piece.getPossibleDirections() and self.getCell(x, y) is None:
+        if ( x-piece.x, y-piece.y ) in piece.getPossibleDirections():
             piece.x = x
             piece.y = y
             self.switchTurn()
             return True
         for ( cx, cy ), ( gx, gy ) in piece.getPossibleCaptures():
-            if gx == x - piece.x and gy == y - piece.y:
+            if piece.x + gx == x and piece.y + gy == y:
                 self.simulateCapture(piece, piece.x+gx, piece.y+gy, piece.x+cx, piece.y+cy)
                 maxCaptures = self.findCapturesFromPosition(piece, piece.x, piece.y)
                 if not maxCaptures:
@@ -131,8 +140,8 @@ class Board:
         return self.move(piece, *to_pos)
     
     @classmethod
-    def boardFromFen( cls, fen ):
-        'ccccc/ccccc/cc1CC/CCCCC/CCCCC w -'
+    def boardFromFEN( cls, fen ):
+        # 'ccccc/ccccc/cc1CC/CCCCC/CCCCC w -'
         repr, color, cell = fen.split()
         player1 = Player( 'White', 'white' )
         player2 = Player( 'Black', 'black' )
@@ -199,5 +208,9 @@ class Board:
         for i, row in enumerate(board):
             row_label = f'{5 - i} ' + ' '.join(row)  # Adjust for 0-indexing and flip y-axis
             board_with_labels.append(row_label)
+        
+        board_with_labels.append( f'Player {self.currentTurn.name}\'s turn.' )
+        if self.pieceToPlay:
+            board_with_labels.append( f'You must play piece at {XY2POS(self.pieceToPlay.x, self.pieceToPlay.y)}' )
 
         return '\n'.join(board_with_labels)

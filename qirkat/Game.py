@@ -119,4 +119,4 @@ class Qirkat( GameBase ):
             print( f'{self.player1.name} win!' )
 
 if __name__ == '__main__':
-    Checker('Alice', 'Bob').run()
+    Qirkat('Alice', 'Bob').run()

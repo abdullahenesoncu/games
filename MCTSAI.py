@@ -116,7 +116,7 @@ class MCTSAI:
             return -self.gameClass.getScore(repr)
 
 if __name__ == '__main__':
-    gameClass = Shatranj
+    gameClass = Qirkat
     ai1 = MCTSAI(gameClass)
     ai2 = MCTSAI(gameClass)
 
