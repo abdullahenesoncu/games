@@ -18,3 +18,14 @@ class GameBase:
     @classmethod
     def winner(cls, repr):
         raise NotImplementedError()
+    
+    @classmethod
+    def rollDice(cls):
+        raise NotImplementedError()
+    
+    @classmethod
+    def hasDice(cls):
+        return False
+    
+    def play(self, input, dice=None):
+        raise NotImplementedError()

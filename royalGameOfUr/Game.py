@@ -1,113 +1,114 @@
 from .GameBase import GameBase
-from .Board import Board, adjacency_list, GAME_OVER, FLYING_PHASE, MOVING_PHASE, PLACING_PHASE
+from .Board import Board
 from .Player import Player
+import random
 
-class NineMenMorris(GameBase):
+class RoyalGameOfUr(GameBase):
     def __init__(self, player1, player2):
-        self.player1 = Player(player1, "w")
-        self.player2 = Player(player2, "b")
+        self.player1 = Player(player1, "x")
+        self.player2 = Player(player2, "o")
         self.board = Board(self.player1, self.player2)
     
     @classmethod
     def getInitialRepr(self):
-        return Board(Player('W','w'), Player('B','b')).boardToFEN()
+        return "empty 7 empty 7 x"
 
     @classmethod
     def isGameOver(cls, repr):
         board = Board.boardFromFEN(repr)
-        if not board.hasMove(board.currentTurn):
-            return True
-        return board.getPhaseOfPlayer(board.currentTurn) == GAME_OVER
+        return board.isGameOver()
     
     @classmethod
     def winner(cls, repr):
         board = Board.boardFromFEN(repr)
-        if not board.hasMove(board.currentTurn):
-            return -1
-        phase = board.getPhaseOfPlayer(board.currentTurn)
-        if phase == GAME_OVER:
-            if len(board.getPiecesOfPlayer(board.players[0]))<=2:
-                return -1
-            else:
-                return 1
-        return 0
+        return board.winner()
 
     @classmethod
     def getScore(cls, repr):
-        if cls.isGameOver(repr):
-            return cls.winner(repr) * 300
         board = Board.boardFromFEN(repr)
-        p1 = len(board.getPiecesOfPlayer(board.players[0])) + board.players[0].outBoardPieces
-        p2 = len(board.getPiecesOfPlayer(board.players[1])) + board.players[1].outBoardPieces
-        return p1 ** 2 - p2 ** 2
+        score = 0
+
+        # Points for pieces finished
+        score += board.players[0].finishPieces * 1
+        score -= board.players[1].finishPieces * 1
+
+        # Additional points for strategic positions (e.g., rosettes: b5, a2, c2)
+        strategic_positions = ['b5', 'a2', 'c2', 'a8', 'c8']
+        for pos in strategic_positions:
+            if pos in board.piecesOnBoard:
+                if board.piecesOnBoard[pos] == board.players[0]:
+                    score += 0.5  # Half a point for each piece on a strategic position
+                else:
+                    score -= 0.5
+
+        # Subtract points for pieces still at start
+        score -= board.players[0].startPieces * 0.25
+        score += board.players[1].startPieces * 0.25
+
+        return score
 
     @classmethod
-    def getPossibleMoves(cls, repr):
-        board = Board.boardFromFEN(repr)
+    def getPossibleMoves(cls, repr, dice):
         moves = []
-        phase = board.getPhaseOfPlayer(board.currentTurn)
-        player = board.currentTurn
-        pieces = board.getPiecesOfPlayer(player)
-        oponentPieces = board.getPiecesOfPlayer(board.getOpponent(player))
-        if phase == PLACING_PHASE:
-            for pos in adjacency_list:
-                if pos not in pieces + oponentPieces:
-                    board.move(pos)
-                    moves.append((board.boardToFEN(), pos))
-                    board = Board.boardFromFEN(repr)
-                for capture_pos in oponentPieces:
-                    if board.canMove(pos+capture_pos):
-                        board.move(pos+capture_pos)
-                        moves.append((board.boardToFEN(), pos+capture_pos))
-                        board = Board.boardFromFEN(repr)
-        elif phase == MOVING_PHASE or phase == FLYING_PHASE:
-            for pos in pieces:
-                for next_pos in adjacency_list[pos]:
-                    if board.canMove(pos+next_pos):
-                        board.move(pos+next_pos)
-                        moves.append((board.boardToFEN(), pos+next_pos))
-                        board = Board.boardFromFEN(repr)
-                    for capture_pos in oponentPieces:
-                        if board.canMove(pos+next_pos+capture_pos):
-                            board.move(pos+next_pos+capture_pos)
-                            moves.append((board.boardToFEN(), pos+next_pos+capture_pos))
-                            board = Board.boardFromFEN(repr)
+        board = Board.boardFromFEN(repr)
+        if board.currentTurn.startPieces and board.canMove('st', dice):
+            board.move('st', dice)
+            moves.append( (board.boardToFEN(), 'st') )
+            board = Board.boardFromFEN(repr)
+        for pos in list( board.piecesOnBoard.keys() ):
+            if board.canMove(pos, dice):
+                board.move(pos, dice)
+                moves.append( (board.boardToFEN(), pos) )
+                board = Board.boardFromFEN(repr)
         return moves
+    
+    @classmethod
+    def diceStates(cls):
+        return [ (0, 1/16), (1, 4/16), (2, 6/16), (3, 4/16), (4, 1/16) ]
+    
+    @classmethod
+    def rollDice(cls):
+        x = random.randint(0, 15)
+        if x < 1:
+            return 0
+        if x < 5:
+            return 1
+        if x < 11:
+            return 2
+        if x < 15:
+            return 3
+        return 4
+    
+    @classmethod
+    def hasDice(cls):
+        return True
 
-    def play(self, input):
-        status = False
-        phase = self.board.getPhaseOfPlayer(self.board.currentTurn)
-        if phase == PLACING_PHASE:
-            status = self.board.canMovePlacingPhase(input)
-        elif phase == MOVING_PHASE:
-            status = self.board.canMoveMovingPhase(input)
-        elif phase == FLYING_PHASE:
-            status = self.board.canMoveFlyingPhase(input)
-        if status:
-            self.board.move(input)
-        return status
+    def play(self, input, dice):
+        if not dice or not self.board.hasCurrentPlayerMove(dice):
+            return True
+        return self.board.move(input, dice)
 
     def getInput(self):
-        moveInput = input(f'Please Enter Your Move ({self.board.currentTurn.name}): ')
+        moveInput = input(f'Please Enter Your Move ({self.board.currentTurn.name}) (st, fn, a1, c2, ...): ')
         return moveInput
 
     def parseInput(self, moveInput):
-        if len(moveInput) not in [2, 4, 6]:
+        if len(moveInput) != 2:
             return None
-        for i in range(0, len(moveInput), 2):
-            if moveInput[i:i+2] not in adjacency_list:
-                return None
         return moveInput
 
     def run(self):
-        while not self.isGameOver():
+        while not self.board.isGameOver():
             print(self.board.boardToString())
+            dice = self.rollDice()
+            print("Dice: ", dice)
+            if not dice or not self.board.hasCurrentPlayerMove(dice):
+                print("Don't move")
+                continue
             moveInput = self.getInput()
             parsedInput = self.parseInput(moveInput)
             if parsedInput:
-                if self.play(parsedInput):
-                    self.play(parsedInput)
-                else:
+                if not self.play(parsedInput, dice):
                     print("Invalid move. Try again.")
             else:
                 print("Invalid move. Try again.")

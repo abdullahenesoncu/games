@@ -27,7 +27,7 @@ class Board:
         return self.paths[player][newIndex]
     
     def canMove(self, pos, dice):
-        if pos == 'a4' or pos == 'c4':
+        if pos == 'st':
             if self.currentTurn.startPieces == 0:
                 return False
             nextPos = self.getNextCell(pos, dice, self.currentTurn)
@@ -56,6 +56,9 @@ class Board:
             return False  # Invalid move
 
         nextPos = self.getNextCell(pos, dice, self.currentTurn)
+
+        if pos == 'st':
+            self.currentTurn.startPieces -= 1
 
         # Handle piece movement and capture
         if pos in self.piecesOnBoard:
@@ -97,7 +100,7 @@ class Board:
         return False
 
     def oponentOfPlayer(self, player):
-        self.players[0] if self.currentTurn == self.players[1] else self.players[1]
+        return self.players[0] if self.currentTurn == self.players[1] else self.players[1]
 
     def switchTurn(self):
         self.currentTurn = self.oponentOfPlayer( self.currentTurn )
@@ -120,38 +123,45 @@ class Board:
             r = 9 - int( pos[1] )
             c = ( ord(pos[0])-ord('a') ) * 2 + 2
             if player == self.players[0]:
-                board_lines[r][c] = 'X'
+                board_lines[r] = board_lines[r][:c] + 'X' + board_lines[r][c+1:]
             else:
-                board_lines[r][c] = 'O'
+                board_lines[r] = board_lines[r][:c] + 'O' + board_lines[r][c+1:]
         
         board_lines.append(
              '  st fn\n'\
             f'X {self.players[0].startPieces} {self.players[0].finishPieces}\n'
             f'O {self.players[1].startPieces} {self.players[1].finishPieces}\n'
+            f'{self.currentTurn.name} is playing'
         )
         
         # Join all the lines into a single string
         return "\n".join(board_lines)
     
-    def boardToFen(self):
+    def boardToFEN(self):
         xPieces = []
         oPieces = []
-        for pos, player in self.piecesOnBoard:
+        for pos, player in self.piecesOnBoard.items():
             if player == self.players[0]:
                 xPieces.append(pos)
             else:
                 oPieces.append(pos)
-        xPieces = ','.join(xPieces)
-        yPieces = ','.join(yPieces)
-        return f'{xPieces} {self.players[0].startPieces} {yPieces} {self.players[1].startPieces} {"x" if self.currentTurn==self.players[0] else "o"}'
+        if xPieces:
+            xPieces = ','.join(xPieces)
+        else:
+            xPieces = 'empty'
+        if oPieces:
+            oPieces = ','.join(oPieces)
+        else:
+            oPieces = 'empty'
+        return f'{xPieces} {self.players[0].startPieces} {oPieces} {self.players[1].startPieces} {"x" if self.currentTurn==self.players[0] else "o"}'
     
     @classmethod
     def boardFromFEN(cls, fen):
         player1 = Player('W', 'w')
         player2 = Player('B', 'b')
         xPieces, xStartPieces, yPieces, yStartPieces, currentTurn = fen.split()
-        xPieces = xPieces.split(',')
-        yPieces = yPieces.split(',')
+        xPieces = xPieces.split(',') if xPieces != 'empty' else []
+        yPieces = yPieces.split(',') if yPieces != 'empty' else []
         player1.startPieces = int(xStartPieces)
         player2.startPieces = int(yStartPieces)
         player1.finishPieces = 7 - player1.startPieces - len(xPieces)

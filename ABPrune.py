@@ -2,6 +2,7 @@ from tictactoe.Game import TicTacToe
 from qirkat.Game import Qirkat
 from checker.Game import Checker
 from nineMenMorris.Game import NineMenMorris
+from royalGameOfUr.Game import RoyalGameOfUr
 import random
 
 class AlphaBetaAI:
@@ -9,11 +10,11 @@ class AlphaBetaAI:
         self.gameClass = gameClass
         self.maxDepth = maxDepth
 
-    def findBestMove(self, boardRepr, isMaximizingPlayer):
-        bestScore, bestMove = self.alphaBeta(boardRepr, self.maxDepth, float('-inf'), float('inf'), isMaximizingPlayer)
+    def findBestMove(self, boardRepr, isMaximizingPlayer, dice=None):
+        bestScore, bestMove = self.alphaBeta(boardRepr, self.maxDepth, float('-inf'), float('inf'), isMaximizingPlayer, dice=dice)
         return bestMove
 
-    def alphaBeta(self, boardRepr, depth, alpha, beta, isMaximizingPlayer):
+    def alphaBeta(self, boardRepr, depth, alpha, beta, isMaximizingPlayer, dice=None):
         if self.gameClass.isGameOver(boardRepr):
             return self.heuristic(boardRepr), None
         if depth == 0:
@@ -22,9 +23,20 @@ class AlphaBetaAI:
         if isMaximizingPlayer:
             maxEval = float('-inf')
             bestMove = None
-            possibleMoves = sorted([ (self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in self.gameClass.getPossibleMoves(boardRepr) ], reverse=True)
+            if dice is not None:
+                possibleMoves = self.gameClass.getPossibleMoves(boardRepr, dice=dice)
+            else:
+                possibleMoves = self.gameClass.getPossibleMoves(boardRepr)
+            possibleMoves = sorted([ (self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in possibleMoves ], reverse=True)
+            if not possibleMoves:
+                possibleMoves.append( (0, boardRepr, None) )
             for _, nextRepr, move in possibleMoves:
-                eval, _ = self.alphaBeta(nextRepr, depth - 1, alpha, beta, False)
+                if dice is not None:
+                    eval = 0
+                    for nextDice, prob in self.gameClass.diceStates():
+                        eval += prob * self.alphaBeta(nextRepr, depth - 1, alpha, beta, False, dice=nextDice)[ 0 ]
+                else:
+                    eval, _ = self.alphaBeta(nextRepr, depth - 1, alpha, beta, False)
                 if eval > maxEval:
                     maxEval = eval
                     bestMove = move
@@ -35,9 +47,20 @@ class AlphaBetaAI:
         else:
             minEval = float('inf')
             bestMove = None
-            possibleMoves = [ (self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in self.gameClass.getPossibleMoves(boardRepr) ]
+            if dice is not None:
+                possibleMoves = self.gameClass.getPossibleMoves(boardRepr, dice=dice)
+            else:
+                possibleMoves = self.gameClass.getPossibleMoves(boardRepr)
+            possibleMoves = sorted([ (self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in possibleMoves ], reverse=True)
+            if not possibleMoves:
+                possibleMoves.append( (0, boardRepr, None) )
             for _, nextRepr, move in possibleMoves:
-                eval, _ = self.alphaBeta(nextRepr, depth - 1, alpha, beta, True)
+                if dice is not None:
+                    eval = 0
+                    for nextDice, prob in self.gameClass.diceStates():
+                        eval += prob * self.alphaBeta(nextRepr, depth - 1, alpha, beta, True, dice=nextDice)[ 0 ]
+                else:
+                    eval, _ = self.alphaBeta(nextRepr, depth - 1, alpha, beta, True)
                 if eval < minEval:
                     minEval = eval
                     bestMove = move
@@ -49,26 +72,37 @@ class AlphaBetaAI:
     def heuristic(self, boardRepr):
         return self.gameClass.getScore(boardRepr)
 
-if __name__ == '__main__':
-    gameClass = TicTacToe
-    ai1 = AlphaBetaAI( gameClass, maxDepth=10 )
-    ai2 = AlphaBetaAI( gameClass, maxDepth=10 )
+class Human:
+    def findBestMove(*args, **kwargs):
+        return input()
 
-    game = gameClass( 3, 'White', 'Black' )
+if __name__ == '__main__':
+    gameClass = RoyalGameOfUr
+    ai1 = AlphaBetaAI( gameClass, maxDepth=5 )
+    ai2 = AlphaBetaAI( gameClass, maxDepth=5 )
+
+    game = gameClass( 'Ali', 'Veli' )
 
     while True:
         print( game.board.boardToString() )
         if game.isGameOver(game.board.boardToFEN()):
             winner = game.winner(game.board.boardToFEN())
             if winner == 1:
-                print( 'White wins' )
+                print( f'{game.board.players[0].name} wins' )
             if winner == -1:
-                print( 'Black wins' )
+                print( f'{game.board.players[1].name} wins' )
             if winner == 0:
                 print( 'Draw' )
             break
+        dice = None
+        if gameClass.hasDice():
+            dice = gameClass.rollDice()
+            print( "Dice: ", dice )
         if game.board.currentTurn == game.board.players[0]:
-            move = ai1.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
+            move = ai1.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0], dice )
         else:
-            move = ai2.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
-        game.play( move )
+            move = ai2.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0], dice )
+        if dice is not None:
+            game.play( move, dice )
+        else:
+            game.play( move )
