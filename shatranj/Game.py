@@ -369,7 +369,7 @@ class Shatranj( GameBase ):
             moveInput = self.parseInput( input( 'Please Enter Your Move: ' ) )
         return moveInput
     
-    def play( self, input ):
+    def play( self, input, dice=None ):
         print(input)
         input = self.parseInput(input)
         status = self.board.play(*input)

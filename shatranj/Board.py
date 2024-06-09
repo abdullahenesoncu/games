@@ -146,7 +146,7 @@ class Board:
         self.currentTurn
 
     def opponent(self, player):
-        return self.players[0] if player == self.players[1] else self.players[0]
+        return self.players[0] if player == self.players[1] else self.players[1]
 
     def isDraw(self):
         # Check shah for two shahs condition

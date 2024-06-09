@@ -3,12 +3,23 @@ from qirkat.Game import Qirkat
 from checker.Game import Checker
 from nineMenMorris.Game import NineMenMorris
 from royalGameOfUr.Game import RoyalGameOfUr
-import random
+from shatranj.Game import Shatranj
+
+class TranspositionTable:
+    def __init__(self):
+        self.table = {}
+
+    def lookup(self, key):
+        return self.table.get(key)
+
+    def store(self, key, value):
+        self.table[key] = value
 
 class AlphaBetaAI:
     def __init__(self, gameClass, maxDepth=10):
         self.gameClass = gameClass
         self.maxDepth = maxDepth
+        self.transposition_table = TranspositionTable()
 
     def findBestMove(self, boardRepr, isMaximizingPlayer, dice=None):
         bestScore, bestMove = self.alphaBeta(boardRepr, self.maxDepth, float('-inf'), float('inf'), isMaximizingPlayer, dice=dice)
@@ -19,6 +30,10 @@ class AlphaBetaAI:
             return self.heuristic(boardRepr), None
         if depth == 0:
             return self.heuristic(boardRepr), None
+
+        transposition_value = self.transposition_table.lookup(boardRepr)
+        if transposition_value:
+            return transposition_value
 
         if isMaximizingPlayer:
             maxEval = float('-inf')
@@ -43,6 +58,7 @@ class AlphaBetaAI:
                 alpha = max(alpha, eval)
                 if beta <= alpha:
                     break
+            self.transposition_table.store(boardRepr, (maxEval, bestMove))
             return maxEval, bestMove
         else:
             minEval = float('inf')
@@ -51,7 +67,7 @@ class AlphaBetaAI:
                 possibleMoves = self.gameClass.getPossibleMoves(boardRepr, dice=dice)
             else:
                 possibleMoves = self.gameClass.getPossibleMoves(boardRepr)
-            possibleMoves = sorted([ (self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in possibleMoves ], reverse=True)
+            possibleMoves = sorted([ (self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in possibleMoves ])
             if not possibleMoves:
                 possibleMoves.append( (0, boardRepr, None) )
             for _, nextRepr, move in possibleMoves:
@@ -67,6 +83,7 @@ class AlphaBetaAI:
                 beta = min(beta, eval)
                 if beta <= alpha:
                     break
+            self.transposition_table.store(boardRepr, (minEval, bestMove))
             return minEval, bestMove
 
     def heuristic(self, boardRepr):
@@ -77,7 +94,7 @@ class Human:
         return input()
 
 if __name__ == '__main__':
-    gameClass = RoyalGameOfUr
+    gameClass = Shatranj
     ai1 = AlphaBetaAI( gameClass, maxDepth=5 )
     ai2 = AlphaBetaAI( gameClass, maxDepth=5 )
 
