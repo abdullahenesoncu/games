@@ -2,21 +2,10 @@ from shatranj.Game import Shatranj
 from datetime import datetime
 import random
 
-class TranspositionTable:
-    def __init__(self):
-        self.table = {}
-
-    def lookup(self, key):
-        return self.table.get(key)
-
-    def store(self, key, value):
-        self.table[key] = value
-
 class AlphaBetaAI:
     def __init__(self, gameClass, maxDepth=5):
         self.gameClass = gameClass
         self.maxDepth = maxDepth
-        self.transposition_table = TranspositionTable()
         self.cnt = 0
         self.totalGetPosMoves = 0.0
         self.path = []
@@ -40,10 +29,6 @@ class AlphaBetaAI:
         if depth == 0:
             return self.heuristic(boardRepr), None
 
-        transposition_value = self.transposition_table.lookup(boardRepr)
-        if transposition_value:
-            return transposition_value
-
         self.path.append( self.getFenHash( boardRepr ) )
 
         if isMaximizingPlayer:
@@ -62,7 +47,6 @@ class AlphaBetaAI:
                 alpha = max(alpha, eval)
                 if beta <= alpha:
                     break
-            self.transposition_table.store(boardRepr, (maxEval, bestMove))
             self.path.pop( len( self.path ) - 1 )
             return maxEval, bestMove
         else:
@@ -81,7 +65,6 @@ class AlphaBetaAI:
                 beta = min(beta, eval)
                 if beta <= alpha:
                     break
-            self.transposition_table.store(boardRepr, (minEval, bestMove))
             self.path.pop( len( self.path ) - 1 )
             return minEval, bestMove
 
