@@ -1,9 +1,6 @@
 import random
 import math
 from checker.Game import Checker
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from multiprocessing import Pipe, cpu_count
-from threading import Lock
 from tictactoe.Game import TicTacToe
 from qirkat.Game import Qirkat
 from nineMenMorris.Game import NineMenMorris
@@ -24,56 +21,42 @@ class Node:
         return len(self.children) == 0
 
     def add_child(self, move, board_state):
-        child_node = [ c for c in self.children if c.move==move ]
-        if child_node: return child_node[0]
+        child_node = [c for c in self.children if c.move == move]
+        if child_node:
+            return child_node[0]
         child_node = Node(board_state, self.gameClass, self, move)
         self.children.append(child_node)
         return child_node
 
     def update(self, result):
         self.visits += 1
-        self.wins += 1 if result > 0 else (0 if result == 0 else -1)
-
+        self.wins += result
 
 class MCTSAI:
-    def __init__(self, gameClass, iterations=100):
+    def __init__(self, gameClass, iterations=1000):  # Increased iterations
         self.gameClass = gameClass
         self.iterations = iterations
 
-    def mcts_iteration(self, node, simulate_pool, mutex, isMaximizingPlayer):
-        mutex.acquire()
+    def mcts_iteration(self, node, isMaximizingPlayer):
         while not node.is_leaf():
             node = self.select_child(node)
 
-        nextRepr = node.board_state
+        next_board_state = node.board_state
         move = node.move
         if not self.gameClass.isGameOver(node.board_state):
-            nextRepr, move = random.choice(node.untried_moves)
-        mutex.release()
-        
-        future = simulate_pool.submit(self.simulate_random_gameplay, nextRepr, isMaximizingPlayer)
-        score = future.result()
+            next_board_state, move = random.choice(node.untried_moves)
 
-        mutex.acquire()
-        try:
-            node = node.add_child(move, nextRepr)
-            while node is not None:
-                node.update(score)
-                node = node.parent
-        finally:
-            mutex.release()
+        score = self.simulate_random_gameplay(next_board_state, isMaximizingPlayer)
 
-    def findBestMove(self, boardRepr, isMaximizingPlayer):
-        root = Node(boardRepr, self.gameClass)        
-        mutex = Lock()
+        node = node.add_child(move, next_board_state)
+        while node is not None:
+            node.update(score)
+            node = node.parent
 
-        # Create a process pool for simulations
-        with ProcessPoolExecutor(max_workers=cpu_count()) as simulate_pool:
-            # Distribute the iterations across multiple threads
-            with ThreadPoolExecutor(max_workers=cpu_count()) as executor:
-                futures = [executor.submit(self.mcts_iteration, root, simulate_pool, mutex, isMaximizingPlayer) for _ in range(self.iterations)]
-                for future in futures:
-                    future.result()
+    def findBestMove(self, board_state, isMaximizingPlayer):
+        root = Node(board_state, self.gameClass)
+        for _ in range(self.iterations):
+            self.mcts_iteration(root, isMaximizingPlayer)
 
         return max(root.children, key=lambda c: c.visits).move
 
@@ -89,52 +72,48 @@ class MCTSAI:
                 best_nodes.append(child)
         return random.choice(best_nodes)
 
-    def simulate_random_gameplay(self, repr, isMaximizingPlayer, maxDepth=10):
+    def simulate_random_gameplay(self, board_state, isMaximizingPlayer, maxDepth=20):
         depth = 0
-        while not self.gameClass.isGameOver(repr) and depth < maxDepth:
-            possible_moves = self.gameClass.getPossibleMoves(repr)
+        while not self.gameClass.isGameOver(board_state) and depth < maxDepth:
+            possible_moves = self.gameClass.getPossibleMoves(board_state)
             if not possible_moves:
                 break
-            
-            # Calculate scores for each possible move
-            move_scores = [(move, self.gameClass.getScore(nextRepr)) for nextRepr, move in possible_moves]
-
-            # Normalize scores to get probabilities
-            total_score = sum(score for _, score in move_scores)
-            if total_score > 0:
-                probabilities = [score / total_score for _, score in move_scores]
+            # Favor moves that could lead to a win in the simulation
+            win_move = next((move for move in possible_moves), None)
+            if win_move:
+                board_state, _ = win_move
             else:
-                probabilities = [1 / len(move_scores) for _ in move_scores]  # Equal probability if all scores are non-positive
-
-            # Choose a move based on the calculated probabilities
-            nextRepr, chosen_move = random.choices(possible_moves, weights=probabilities, k=1)[0]
-            repr = nextRepr
+                board_state, _ = random.choice(possible_moves)
             depth += 1
-        if isMaximizingPlayer:
-            return self.gameClass.getScore(repr)
-        else:
-            return -self.gameClass.getScore(repr)
+        if not self.gameClass.isGameOver(board_state):
+            return 0.5
+        winner = self.gameClass.winner(board_state)
+        return winner if isMaximizingPlayer else -winner
 
 if __name__ == '__main__':
-    gameClass = Qirkat
+    gameClass = Shatranj
     ai1 = MCTSAI(gameClass)
     ai2 = MCTSAI(gameClass)
 
-    game = gameClass( 'White', 'Black' )
+    game = gameClass('White', 'Black')
+
+    from shatranj.Board import Board
+    game.board = Board.boardFromFEN('1r1r4/8/1h6/2p5/2P5/1HS5/R3R3/1s6 b 0 1')
 
     while True:
-        print( game.board.boardToString() )
+        print(game.board.boardToString())
+        print(game.board.boardToFEN())
         if game.isGameOver(game.board.boardToFEN()):
             winner = game.winner(game.board.boardToFEN())
             if winner == 1:
-                print( 'White wins' )
-            if winner == -1:
-                print( 'Black wins' )
-            if winner == 0:
-                print( 'Draw' )
+                print('White wins')
+            elif winner == -1:
+                print('Black wins')
+            else:
+                print('Draw')
             break
         if game.board.currentTurn == game.board.players[0]:
-            move = ai1.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
+            move = ai1.findBestMove(game.board.boardToFEN(), game.board.currentTurn == game.board.players[0])
         else:
-            move = ai2.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
-        game.play( move )
+            move = ai2.findBestMove(game.board.boardToFEN(), game.board.currentTurn == game.board.players[0])
+        game.play(move)

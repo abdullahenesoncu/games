@@ -15,20 +15,25 @@ class Board:
         self.lastMove = None
         self.halfMoveClock = 0
         self.fullMoveNumber = 1
+        self.pieceMap = {}
 
     def addPiece(self, piece):
+        assert( ( piece.x, piece.y ) not in self.pieceMap )
+        self.pieceMap[ ( piece.x, piece.y ) ] = piece
         self.pieces.append(piece)
         piece.player.addPiece(piece)
     
     def removePiece(self, piece):
+        assert( ( piece.x, piece.y ) in self.pieceMap )
         self.pieces.remove(piece)
         piece.player.removePiece(piece)
+        del self.pieceMap[ ( piece.x, piece.y ) ]
 
     def getCell(self, x, y):
-        for piece in self.pieces:
-            if piece.x == x and piece.y == y:
-                return piece
-        return None
+        piece = self.pieceMap.get( ( x, y ), None )
+        if piece:
+            assert( piece.x == x and piece.y == y )
+        return piece
     
     def moveSuccesful( self, piece, targetPiece, fromX, fromY, toX, toY ):
         self.lastMove = {
@@ -72,9 +77,11 @@ class Board:
         # Move the piece and handle captures
         captured_piece = self.getCell(x, y)
         if captured_piece and canCapture:
-            self.pieces.remove(captured_piece)
-            captured_piece.player.removePiece(captured_piece)
+            self.removePiece( captured_piece )
+        
+        self.removePiece( piece )
         piece.move( x, y )
+        self.addPiece( piece )
 
         # Piyade Promotion Logic
         if isinstance(piece, Piyade) and (piece.y == 0 or piece.y == 7):
@@ -93,16 +100,20 @@ class Board:
         original_x, original_y = piece.x, piece.y
         capturedPiece = self.getCell( x, y )
         if capturedPiece:
-            capturedPiece.player.pieces.remove( capturedPiece )
-            self.pieces.remove( capturedPiece )
+            self.removePiece( capturedPiece )
 
+        self.removePiece( piece )
         piece.x, piece.y = x, y
+        self.addPiece( piece )
+
         inCheck = self.isCheck(piece.player)
 
+        self.removePiece( piece )
         piece.x, piece.y = original_x, original_y
+        self.addPiece( piece )
+
         if capturedPiece:
-            capturedPiece.player.pieces.append( capturedPiece )
-            self.pieces.append( capturedPiece )
+            self.addPiece( capturedPiece )
         
         return inCheck
 
@@ -129,10 +140,13 @@ class Board:
 
     def isGameOver(self):
         if self.isStalemate(self.currentTurn):
+            print("stalemate")
             return True
         if self.isCheckmate(self.currentTurn):
+            print("checkmate")
             return True
         if self.isDraw():
+            print("draw")
             return True
         return False
     
@@ -282,7 +296,7 @@ class Board:
                     piece = piece_class(player, XY2POS(x, 7 - y))
                     if piece_class == Piyade and (color == 'white' and y != 6 or color == 'black' and y != 1):
                         piece.moved = True
-                    board.addPiece(piece)
+                    board.addPiece( piece )
                     x += 1
 
         board.currentTurn = player1 if fields[1] == 'w' else player2

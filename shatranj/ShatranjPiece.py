@@ -1,4 +1,5 @@
 from .helpers import XY2POS, POS2XY
+import math
 
 class ShatranjPiece:
     def __init__(self, player, pos):
@@ -15,18 +16,16 @@ class ShatranjPiece:
             return False
         if x < 0 or x > 7 or y < 0 or y > 7:
             return False
+        if board.getCell( x, y ):
+            return False
         diff = (x - self.x, y - self.y)
         if not self.multipleMove:
             if diff not in self.possibleRegularMoves:
                 return False
         else:
-            ok = False
-            for i in range(1, 8):
-                if (diff[0] % i == 0 and diff[1] % i == 0 and
-                    (diff[0] // i, diff[1] // i) in self.possibleRegularMoves):
-                    ok = True
-                    break
-            if not ok:
+            gcd = math.gcd( diff[ 0 ], diff[ 1 ] )
+            diff = ( diff[ 0 ] / gcd, diff[ 1 ] / gcd )
+            if diff not in self.possibleRegularMoves:
                 return False
         piece = board.getCell(x, y)
         if piece and piece.player == self.player:
@@ -45,13 +44,9 @@ class ShatranjPiece:
             if diff not in self.possibleCaptureMoves:
                 return False
         else:
-            ok = False
-            for i in range(1, 8):
-                if (diff[0] % i == 0 and diff[1] % i == 0 and
-                    (diff[0] // i, diff[1] // i)  in self.possibleCaptureMoves):
-                    ok = True
-                    break
-            if not ok:
+            gcd = math.gcd( diff[ 0 ], diff[ 1 ] )
+            diff = ( diff[ 0 ] / gcd, diff[ 1 ] / gcd )
+            if diff not in self.possibleCaptureMoves:
                 return False
         if ctrlCheck and board.wouldBeInCheck( self, x, y ):
             return False

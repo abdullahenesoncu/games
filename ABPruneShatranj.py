@@ -1,9 +1,6 @@
-from tictactoe.Game import TicTacToe
-from qirkat.Game import Qirkat
-from checker.Game import Checker
-from nineMenMorris.Game import NineMenMorris
-from royalGameOfUr.Game import RoyalGameOfUr
 from shatranj.Game import Shatranj
+from datetime import datetime
+import random
 
 class TranspositionTable:
     def __init__(self):
@@ -20,12 +17,20 @@ class AlphaBetaAI:
         self.gameClass = gameClass
         self.maxDepth = maxDepth
         self.transposition_table = TranspositionTable()
+        self.cnt = 0
+        self.totalGetPosMoves = 0.0
 
-    def findBestMove(self, boardRepr, isMaximizingPlayer, dice=None):
-        bestScore, bestMove = self.alphaBeta(boardRepr, self.maxDepth, float('-inf'), float('inf'), isMaximizingPlayer, dice=dice)
+    def findBestMove(self, boardRepr, isMaximizingPlayer):
+        bestScore, bestMove = self.alphaBeta(boardRepr, self.maxDepth, float('-inf'), float('inf'), isMaximizingPlayer)
         return bestMove
-
-    def alphaBeta(self, boardRepr, depth, alpha, beta, isMaximizingPlayer, dice=None):
+    
+    def getSamplePossibleMoves( self, heuristicallySortedPossibleMoves ):
+        return heuristicallySortedPossibleMoves
+        arr = heuristicallySortedPossibleMoves[ 3 : ]
+        return heuristicallySortedPossibleMoves[ : 3 ] + random.sample( arr, min( len( arr ) , 3 ) )
+    
+    def alphaBeta(self, boardRepr, depth, alpha, beta, isMaximizingPlayer):
+        self.cnt += 1
         if self.gameClass.isGameOver(boardRepr):
             return self.heuristic(boardRepr), None
         if depth == 0:
@@ -38,20 +43,13 @@ class AlphaBetaAI:
         if isMaximizingPlayer:
             maxEval = float('-inf')
             bestMove = None
-            if dice is not None:
-                possibleMoves = self.gameClass.getPossibleMoves(boardRepr, dice=dice)
-            else:
-                possibleMoves = self.gameClass.getPossibleMoves(boardRepr)
-            possibleMoves = sorted([ (self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in possibleMoves ], reverse=True)[:5]
+            possibleMoves = self.gameClass.getPossibleMoves(boardRepr)
+            possibleMoves = sorted([ (-self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in possibleMoves ])
             if not possibleMoves:
                 possibleMoves.append( (0, boardRepr, None) )
+            possibleMoves = self.getSamplePossibleMoves( possibleMoves )
             for _, nextRepr, move in possibleMoves:
-                if dice is not None:
-                    eval = 0
-                    for nextDice, prob in self.gameClass.diceStates():
-                        eval += prob * self.alphaBeta(nextRepr, depth - 1, alpha, beta, False, dice=nextDice)[ 0 ]
-                else:
-                    eval, _ = self.alphaBeta(nextRepr, depth - 1, alpha, beta, False)
+                eval, _ = self.alphaBeta(nextRepr, depth - 1, alpha, beta, False)
                 if eval > maxEval:
                     maxEval = eval
                     bestMove = move
@@ -63,20 +61,14 @@ class AlphaBetaAI:
         else:
             minEval = float('inf')
             bestMove = None
-            if dice is not None:
-                possibleMoves = self.gameClass.getPossibleMoves(boardRepr, dice=dice)
-            else:
-                possibleMoves = self.gameClass.getPossibleMoves(boardRepr)
-            possibleMoves = sorted([ (-self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in possibleMoves ])[:5]
+            possibleMoves = self.gameClass.getPossibleMoves(boardRepr)
+            possibleMoves = sorted([ (self.heuristic(nextRepr), nextRepr, move) for nextRepr, move in possibleMoves ])
+            self.totalGetPosMoves += ( datetime.now() - starttime ).microseconds / 1000000
             if not possibleMoves:
                 possibleMoves.append( (0, boardRepr, None) )
+            possibleMoves = self.getSamplePossibleMoves( possibleMoves )
             for _, nextRepr, move in possibleMoves:
-                if dice is not None:
-                    eval = 0
-                    for nextDice, prob in self.gameClass.diceStates():
-                        eval += prob * self.alphaBeta(nextRepr, depth - 1, alpha, beta, True, dice=nextDice)[ 0 ]
-                else:
-                    eval, _ = self.alphaBeta(nextRepr, depth - 1, alpha, beta, True)
+                eval, _ = self.alphaBeta(nextRepr, depth - 1, alpha, beta, True)
                 if eval < minEval:
                     minEval = eval
                     bestMove = move
@@ -89,23 +81,23 @@ class AlphaBetaAI:
     def heuristic(self, boardRepr):
         return self.gameClass.getScore(boardRepr)
 
-class Human:
-    def findBestMove(*args, **kwargs):
-        return input()
-
 if __name__ == '__main__':
     gameClass = Shatranj
-    ai1 = AlphaBetaAI( gameClass, maxDepth=5 )
-    ai2 = AlphaBetaAI( gameClass, maxDepth=5 )
+    ai = AlphaBetaAI( gameClass, maxDepth=5 )
 
     game = gameClass( 'Ali', 'Veli' )
     from shatranj.Board import Board
     #game.board = Board.boardFromFEN( '1r1r4/8/1h6/2p5/2P5/1HS5/R3R3/1s6 b 0 1' )
+    game.board = Board.boardFromFEN( '8/1p5s/3f4/8/2p5/p1P5/P1P2Pv1/5S2 w 2 89' )
 
+    from datetime import datetime
+    starttime = datetime.now()
     while True:
         print( game.board.boardToString() )
+        print( game.board.boardToFEN() )
         if game.isGameOver(game.board.boardToFEN()):
             winner = game.winner(game.board.boardToFEN())
+            print( winner )
             if winner == 1:
                 print( f'{game.board.players[0].name} wins' )
             if winner == -1:
@@ -113,15 +105,8 @@ if __name__ == '__main__':
             if winner == 0:
                 print( 'Draw' )
             break
-        dice = None
-        if gameClass.hasDice():
-            dice = gameClass.rollDice()
-            print( "Dice: ", dice )
-        if game.board.currentTurn == game.board.players[0]:
-            move = ai1.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0], dice )
-        else:
-            move = ai2.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0], dice )
-        if dice is not None:
-            game.play( move, dice )
-        else:
-            game.play( move )
+        move = ai.findBestMove( game.board.boardToFEN(), game.board.currentTurn == game.board.players[0] )
+        game.play( move )
+        print( ai.cnt )
+        print( game.ELLAPSED, game.CNT )
+        print(datetime.now()-starttime)

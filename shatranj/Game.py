@@ -8,6 +8,7 @@ from .Board import Board
 from .Player import Player
 from .GameBase import GameBase
 from .helpers import XY2POS, POS2XY
+from datetime import datetime
 
 import math
 
@@ -92,6 +93,10 @@ piece_values = {Piyade: 1, Horse: 3, Fil: 3, Rook: 5, Vizier: 9, Shah: 0}
 endgame_threshold = 10
 
 class Shatranj( GameBase ):
+
+    ELLAPSED = 0
+    CNT = 0
+
     @classmethod
     def getInitialRepr( cls ):
         return 'rhfvsfhr/pppppppp/8/8/8/8/PPPPPPPP/RHFVSFHR w 0 1'
@@ -112,21 +117,15 @@ class Shatranj( GameBase ):
                     continue
                 for x in range(8):
                     for y in range(8):
-                        if board.getCell( X, Y ).canMove( x, y, board ) or board.getCell( X, Y ).canCapture( x, y, board ):
-                            pieceX = X
-                            pieceY = Y
-                            try:
-                                r = board.movePiece( board.getCell( X, Y ), x, y )
-                                assert( r )
-                            except:
-                                print(board.wouldBeInCheck( board.getCell(X,Y), x, y ))
-                                print(board.getCell(X,Y))
-                                print( board.boardToString() )
-                                print(board.boardToFEN())
-                                print( f'{XY2POS( pieceX, pieceY )}{XY2POS( x, y )}',  board.getCell( X, Y ).player.color, board.currentTurn.color )
-                                assert(False)
-                            res.append( ( board.boardToFEN(), f'{XY2POS( pieceX, pieceY )}{XY2POS( x, y )}' ) )
-                            board = Board.boardFromFEN( repr )
+                        r1 = board.getCell( X, Y ).canMove( x, y, board ) # 1.8
+                        r2 = False
+                        if not r1:
+                            r2 = board.getCell( X, Y ).canCapture( x, y, board ) # 1.5
+                        if r1 or r2:
+                            r = board.movePiece( board.getCell( X, Y ), x, y ) # 0.5
+                            assert( r )
+                            res.append( ( board.boardToFEN(), f'{XY2POS( X, Y )}{XY2POS( x, y )}' ) ) # 1
+                            board = Board.boardFromFEN( repr ) # 1.2
         return res
     
     @classmethod
@@ -158,7 +157,9 @@ class Shatranj( GameBase ):
             return float('-1000') if board.currentTurn.color == 'white' else float('1000')
         elif board.halfMoveClock > 10:
             return 0
-        
+        if board.isCheck( board.currentTurn ):
+            score = float('-100') if board.currentTurn.color == 'white' else float('100')
+
         for piece in board.pieces:
             positional_value = 0
             if isinstance(piece, Piyade):
@@ -182,18 +183,20 @@ class Shatranj( GameBase ):
                 score += total_value
             else:
                 score -= total_value
-
         # Piyade Structure Analysis
-        score += cls.analyzePiyadeStructure(board)
-
+        # score += cls.analyzePiyadeStructure(board)
+        
         # Shah Safety
+        # starttime = datetime.now()
         score += cls.evaluateShahSafety(board)
+        # cls.ELLAPSED += ( datetime.now() - starttime ).total_seconds()
+        # cls.CNT += 1
 
         # Control of the Center
-        score += cls.evaluateCenterControl(board)
+        # score += cls.evaluateCenterControl(board)
 
         # Piece Mobility
-        #score += cls.evaluatePieceMobility(board)
+        # score += cls.evaluatePieceMobility(board)
         
         if board.currentTurn.color == 'white':
             score -= board.fullMoveNumber
