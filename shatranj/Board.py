@@ -131,7 +131,9 @@ class Board:
     def isCheckmate(self, player):
         if not self.isCheck(player):
             return False
-        for piece in player.pieces:
+        piecePosition = [ ( p.x, p.y ) for p in player.pieces ]
+        for piecePos in piecePosition:
+            piece = self.getCell( *piecePos )
             for x in range(8):
                 for y in range(8):
                     if ( piece.canMove(x, y, self, ctrlCheck=False) or piece.canCapture(x, y, self, ctrlCheck=False) ) and not self.wouldBeInCheck(piece, x, y):
@@ -140,13 +142,10 @@ class Board:
 
     def isGameOver(self):
         if self.isStalemate(self.currentTurn):
-            print("stalemate")
             return True
         if self.isCheckmate(self.currentTurn):
-            print("checkmate")
             return True
         if self.isDraw():
-            print("draw")
             return True
         return False
     

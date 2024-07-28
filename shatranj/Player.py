@@ -10,3 +10,6 @@ class Player:
     def removePiece(self, piece):
         assert piece in self.pieces
         self.pieces.remove(piece)
+
+    def __str__( self ):
+        return f"{self.color}({self.name})"
