@@ -146,7 +146,7 @@ class Shatranj( GameBase ):
             return -1
     
     @classmethod
-    def getScore(cls, repr):
+    def getScore(cls, repr, soft=False):
         board = Board.boardFromFEN(repr)
         score = 0
         is_endgame = len(board.pieces) < endgame_threshold
@@ -155,10 +155,9 @@ class Shatranj( GameBase ):
             return 0
         elif board.isCheckmate( board.currentTurn ):
             return float('-1000') if board.currentTurn.color == 'white' else float('1000')
-        elif board.halfMoveClock > 10:
-            return 0
+
         if board.isCheck( board.currentTurn ):
-            score = float('-100') if board.currentTurn.color == 'white' else float('100')
+            score = float('-200') if board.currentTurn.color == 'white' else float('200')
 
         for piece in board.pieces:
             positional_value = 0
@@ -177,31 +176,26 @@ class Shatranj( GameBase ):
                     positional_value = shah_positions_endgame[piece.y][piece.x]
                 else:
                     positional_value = shah_positions_opening[piece.y][piece.x]
-            
+
             total_value = piece_values[type(piece)] + positional_value
             if piece.player.color == 'white':
                 score += total_value
             else:
                 score -= total_value
-        # Piyade Structure Analysis
-        # score += cls.analyzePiyadeStructure(board)
         
-        # Shah Safety
-        # starttime = datetime.now()
-        score += cls.evaluateShahSafety(board)
-        # cls.ELLAPSED += ( datetime.now() - starttime ).total_seconds()
-        # cls.CNT += 1
+        if not soft:
+            # Piyade Structure Analysis
+            score += cls.analyzePiyadeStructure(board)
+            
+            # Shah Safety
+            # starttime = datetime.now()
+            score += cls.evaluateShahSafety(board)
 
-        # Control of the Center
-        # score += cls.evaluateCenterControl(board)
+            # Control of the Center
+            score += cls.evaluateCenterControl(board)
 
-        # Piece Mobility
-        # score += cls.evaluatePieceMobility(board)
-        
-        if board.currentTurn.color == 'white':
-            score -= board.fullMoveNumber
-        else:
-            score += board.fullMoveNumber
+            # Piece Mobility
+            # score += cls.evaluatePieceMobility(board)
 
         return score
 
