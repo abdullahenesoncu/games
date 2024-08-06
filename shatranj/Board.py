@@ -221,6 +221,13 @@ class Board:
             if p.canThreat(x, y, self):
                 return True
         return False
+    
+    def isCapture(self, move):
+        to_pos = POS2XY(move[2:])
+        target_piece = self.getCell(*to_pos)
+        if target_piece and target_piece.player != self.currentTurn:
+            return True
+        return False
 
     def play( self, from_pos, to_pos ):
         from_pos = POS2XY( from_pos )

@@ -89,8 +89,7 @@ piyade_positions = [
     [0, 0, 0, 0, 0, 0, 0, 0]
 ]
 
-piece_values = {Piyade: 1, Horse: 3, Fil: 3, Rook: 5, Vizier: 9, Shah: 0}
-endgame_threshold = 10
+piece_values = {Piyade: 1, Horse: 3, Fil: 2, Rook: 5, Vizier: 2, Shah: 0}
 
 class Shatranj( GameBase ):
 
@@ -149,7 +148,6 @@ class Shatranj( GameBase ):
     def getScore(cls, repr, soft=False):
         board = Board.boardFromFEN(repr)
         score = 0
-        is_endgame = len(board.pieces) < endgame_threshold
 
         if board.isDraw():
             return 0
@@ -160,39 +158,23 @@ class Shatranj( GameBase ):
             score = float('-200') if board.currentTurn.color == 'white' else float('200')
 
         for piece in board.pieces:
-            positional_value = 0
-            if isinstance(piece, Piyade):
-                positional_value = piyade_positions[piece.y][piece.x]
-            elif isinstance(piece, Horse):
-                positional_value = horse_positions[piece.y][piece.x]
-            elif isinstance(piece, Fil):
-                positional_value = Fil_positions[piece.y][piece.x]
-            elif isinstance(piece, Rook):
-                positional_value = rook_positions[piece.y][piece.x]
-            elif isinstance(piece, Vizier):
-                positional_value = vizier_positions[piece.y][piece.x]
-            elif isinstance(piece, Shah):
-                if is_endgame:
-                    positional_value = shah_positions_endgame[piece.y][piece.x]
-                else:
-                    positional_value = shah_positions_opening[piece.y][piece.x]
-
-            total_value = piece_values[type(piece)] + positional_value
+            total_value = piece_values[type(piece)]
             if piece.player.color == 'white':
                 score += total_value
             else:
                 score -= total_value
         
         if not soft:
+            pass
             # Piyade Structure Analysis
-            score += cls.analyzePiyadeStructure(board)
+            # score += cls.analyzePiyadeStructure(board)
             
             # Shah Safety
             # starttime = datetime.now()
-            score += cls.evaluateShahSafety(board)
+            # score += cls.evaluateShahSafety(board)
 
             # Control of the Center
-            score += cls.evaluateCenterControl(board)
+            # score += cls.evaluateCenterControl(board)
 
             # Piece Mobility
             # score += cls.evaluatePieceMobility(board)
@@ -348,6 +330,16 @@ class Shatranj( GameBase ):
                 mobility_score -= moves
 
         return mobility_score
+    
+    @classmethod
+    def isCapture( cls, boardRepr, move ):
+        board = Board.boardFromFEN( boardRepr )
+        return board.isCapture( move )
+    
+    @classmethod
+    def isCheck( cls, boardRepr ):
+        board = Board.boardFromFEN( boardRepr )
+        return board.isCheck( board.currentTurn )
     
     def __init__( self, player1, player2 ):
         self.player1 = Player(player1, 'white')
