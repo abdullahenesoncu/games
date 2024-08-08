@@ -33,7 +33,7 @@ class DFSAI:
         possibleMoves = [ pM for pM in Shatranj.getPossibleMoves( boardRepr ) if getFenHash( pM[ 0 ] ) not in states ]
         if color==mateExpectedColor:
             possibleMoves = [ pM for pM in possibleMoves if Shatranj.isCheck( pM[0] ) ]
-        
+
         if color == 'w':
             maxNext = float('-inf')
             for nextRepr, move in possibleMoves:
@@ -65,7 +65,7 @@ class Mate:
         self.expectedMoveNumber = expectedMoveNumber
     
     def run( self, verbose=False ):
-        ai = DFSAI( maxDepth=self.expectedMoveNumber )
+        ai = DFSAI( maxDepth=5 )
 
         game = Shatranj('Ali', 'Veli')
         game.board = Board.boardFromFEN( self.initialFen )
@@ -103,18 +103,19 @@ class Mate:
 
 if __name__ == '__main__':
 
-    mate = Mate( '1r4s1/8/5PP1/S1h5/6HR/7F/1r2p3/7R w 0 1', 'w', 9 )
-    mate.run( verbose=True )
+    #mate = Mate( '1r4s1/8/5PP1/S1h5/6HR/7F/1r2p3/7R w 0 1', 'w', 9 )
+    #mate.run( verbose=True )
 
-    import sys
-    sys.exit( 0 )
+    #import sys
+    #sys.exit( 0 )
 
-    mate = Mate( '1vr2r2/5p2/2P1fHp1/pP1R2Fp/hp6/h1pP1HPs/P3VP2/SFv2R2 w 0 1', 'w', 3 ) # 3. Mat sorusu
-    mate.run( verbose=True )
-
+    #mate = Mate( '1vr2r2/5p2/2P1fHp1/pP1R2Fp/hp6/h1pP1HPs/P3VP2/SFv2R2 w 0 1', 'w', 3 ) # 3. Mat sorusu
+    #mate.run( verbose=True )
+    
     mate = Mate( '1h1r4/6sP/1PpHf2f/2PvPFF1/3P2R1/1ph3R1/r5V1/2S5 w 0 1', 'w', 9 ) # 4. Mat sorusu
     mate.run( verbose=True )
-
+    import sys
+    sys.exit( 0 )
     mate = Mate( '2r1hf2/8/fRp1pppp/s7/p1PSh1p1/P2FF1PP/1RHPH3/8 b 0 1', 'b', 3 ) # 5. Mat sorusu
     mate.run( verbose=True )
 

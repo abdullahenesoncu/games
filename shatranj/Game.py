@@ -93,57 +93,6 @@ piece_values = {Piyade: 1, Horse: 3, Fil: 2, Rook: 5, Vizier: 2, Shah: 0}
 
 class Shatranj( GameBase ):
 
-    ELLAPSED = 0
-    CNT = 0
-
-    @classmethod
-    def getInitialRepr( cls ):
-        return 'rhfvsfhr/pppppppp/8/8/8/8/PPPPPPPP/RHFVSFHR w 0 1'
-    
-    @classmethod
-    def getPossibleMoves( cls, repr ):
-        board = Board.boardFromFEN( repr )
-        res = []
-
-        if board.isGameOver():
-            return res
-        
-        for X in range(8):
-            for Y in range(8):
-                if board.getCell( X, Y ) is None:
-                    continue
-                if board.getCell( X, Y ).player.color != board.currentTurn.color:
-                    continue
-                for x in range(8):
-                    for y in range(8):
-                        r1 = board.getCell( X, Y ).canMove( x, y, board ) # 1.8
-                        r2 = False
-                        if not r1:
-                            r2 = board.getCell( X, Y ).canCapture( x, y, board ) # 1.5
-                        if r1 or r2:
-                            r = board.movePiece( board.getCell( X, Y ), x, y ) # 0.5
-                            assert( r )
-                            res.append( ( board.boardToFEN(), f'{XY2POS( X, Y )}{XY2POS( x, y )}' ) ) # 1
-                            board = Board.boardFromFEN( repr ) # 1.2
-        return res
-    
-    @classmethod
-    def isGameOver( cls, repr ):
-        board = Board.boardFromFEN( repr )
-        return board.isGameOver()
-    
-    @classmethod
-    def winner( cls, repr ):
-        board = Board.boardFromFEN( repr )
-        assert( board.isGameOver() )
-        winner = board.winner()
-        if winner is None:
-            return 0
-        if winner.color == 'white':
-            return 1
-        else:
-            return -1
-    
     @classmethod
     def getScore(cls, repr, soft=False):
         board = Board.boardFromFEN(repr)
@@ -342,15 +291,9 @@ class Shatranj( GameBase ):
         return board.isCheck( board.currentTurn )
     
     def __init__( self, player1, player2 ):
-        self.player1 = Player(player1, 'white')
-        self.player2 = Player(player2, 'black')
+        self.player1 = Player(player1, 'w')
+        self.player2 = Player(player2, 'b')
         self.board = Board( player1, player2 ).boardFromFEN( self.getInitialRepr() )
-    
-    def parseInput( self, moveInput ):
-        if len(moveInput) == 4:
-            return moveInput[ :2 ], moveInput[ 2:4 ]
-        else:
-            return None
     
     def getInput(self):
         moveInput = None

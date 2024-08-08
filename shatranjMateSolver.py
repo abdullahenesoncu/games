@@ -1,5 +1,5 @@
-from shatranj.Game import Shatranj
 from shatranj.Board import Board
+from datetime import datetime
 
 def getFenHash(fenRepr):
     return ' '.join(fenRepr.split()[:2])
@@ -18,13 +18,14 @@ class DFSAI:
         self.maxDepth = maxDepth
         self.cnt = 0
 
-    def findBestMove(self, boardRepr, mateExpectedColor, states):
-        _, bestMove = self.dfs(boardRepr, 0, boardRepr.split()[ 1 ], mateExpectedColor, states)
+    def findBestMove(self, board, mateExpectedColor, states):
+        currentColor = 'w' if board.currentTurn == board.players[ 0 ] else 'b'
+        _, bestMove = self.dfs(board, 0, currentColor, mateExpectedColor, states)
         return bestMove
-    
-    def dfs(self, boardRepr, depth, color, mateExpectedColor, states):
+
+    def dfs(self, board, depth, color, mateExpectedColor, states):
         self.cnt += 1
-        if Shatranj.isGameOver(boardRepr):
+        if board.isGameOver():
             if color != mateExpectedColor:
                 return depth, None
             else:
@@ -33,29 +34,30 @@ class DFSAI:
             return float( 'inf' ), None
 
         bestMove = None
-        possibleMoves = [ pM for pM in Shatranj.getPossibleMoves( boardRepr ) if getFenHash( pM[ 0 ] ) not in states or True ]
-        if color==mateExpectedColor:
-            possibleMoves = [ pM for pM in possibleMoves if Shatranj.isCheck( pM[0] ) ]
-        
+        possibleMoves = board.getPossibleMoves()
+
         if color == mateExpectedColor:
             minMateDepth = float('inf')
-            for nextRepr, move in possibleMoves:
-                states.append( nextRepr )
-                mateDepth, _ = self.dfs(nextRepr, depth + 1, 'b', mateExpectedColor, states)
-                states.pop()
-                if minMateDepth >= mateDepth + 1:
+            for move in possibleMoves:
+                board.play( move )
+                if not board.isCheck():
+                    board.undo()
+                    continue
+                mateDepth, _ = self.dfs(board, depth + 1, 'b' if color == 'w' else 'w', mateExpectedColor, states)
+                if bestMove is None or minMateDepth > mateDepth + 1:
                     minMateDepth = mateDepth + 1
                     bestMove = move
+                board.undo()
             return minMateDepth, bestMove
         else:
             maxMateDepth = float('-inf')
-            for nextRepr, move in possibleMoves:
-                states.append( nextRepr )
-                mateDepth, _ = self.dfs(nextRepr, depth + 1, 'w', mateExpectedColor, states)
-                states.pop()
-                if maxMateDepth <= mateDepth + 1:
+            for move in possibleMoves:
+                board.play( move )
+                mateDepth, _ = self.dfs(board, depth + 1, 'b' if color == 'w' else 'w', mateExpectedColor, states)
+                if bestMove is None or maxMateDepth < mateDepth + 1:
                     maxMateDepth = mateDepth + 1
                     bestMove = move
+                board.undo()
             return maxMateDepth, bestMove
 
 class Mate:
@@ -63,12 +65,12 @@ class Mate:
         self.initialFen = initialFen
         self.mateExpectedColor = mateExpectedColor
         self.expectedMoveNumber = expectedMoveNumber
-    
+
     def run( self, verbose=False ):
+        starttime = datetime.now()
         ai = DFSAI( maxDepth=self.expectedMoveNumber )
 
-        game = Shatranj('Ali', 'Veli')
-        game.board = Board.boardFromFEN( self.initialFen )
+        board = Board.boardFromFEN( self.initialFen )
 
         if verbose:
             print( '#' * 120 )
@@ -77,34 +79,34 @@ class Mate:
         states = []
         while True:
             if verbose:
-                print(game.board.boardToString())
-                print(game.board.boardToFEN())
-            
-            if game.isGameOver(game.board.boardToFEN()):
-                winner = game.winner(game.board.boardToFEN())
-                assert( ( 'w' if winner == 1 else 'b' ) == self.mateExpectedColor )
+                print(board.boardToString())
+                print(board.boardToFEN())
+
+            if board.isGameOver():
+                winner = board.winner()
+                print()
+                assert( ( 'w' if winner == board.players[ 0 ]  else 'b' ) == self.mateExpectedColor )
                 assert( step <= self.expectedMoveNumber )
                 if verbose:
                     if winner == 1:
-                        print(f'{game.board.players[0].name} wins')
+                        print(f'{board.players[0].name} wins')
                     if winner == -1:
-                        print(f'{game.board.players[1].name} wins')
+                        print(f'{board.players[1].name} wins')
                     if winner == 0:
                         print('Draw')
                     print( f'mate found in {step}' )
                 break
-            
-            states.append( getFenHash( game.board.boardToFEN() ) )
-            move = ai.findBestMove(game.board.boardToFEN(), self.mateExpectedColor, states)
-            game.play(move)
+
+            move = ai.findBestMove(board, self.mateExpectedColor, states)
+            if verbose:
+                print( move )
+            board.play( move )
             step += 1
             print(ai.cnt)
+        print(datetime.now()-starttime)
 
 
 if __name__ == '__main__':
-
-    mate = Mate( '1r4s1/8/5PP1/S1h5/6HR/7F/1r2p3/7R w 0 1', 'w', 9 )
-    mate.run( verbose=True )
 
     mate = Mate( '1vr2r2/5p2/2P1fHp1/pP1R2Fp/hp6/h1pP1HPs/P3VP2/SFv2R2 w 0 1', 'w', 3 ) # 3. Mat sorusu
     mate.run( verbose=True )

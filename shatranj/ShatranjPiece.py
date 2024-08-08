@@ -30,14 +30,19 @@ class ShatranjPiece:
         piece = board.getCell(x, y)
         if piece and piece.player == self.player:
             return False
+        if not self.canJumpOverOthers and not board.isPathClear(self.x, self.y, x, y):
+            return False
         if ctrlCheck and board.wouldBeInCheck( self, x, y ):
             return False
-        return self.canJumpOverOthers or board.isPathClear(self.x, self.y, x, y)
-    
+        return True
+
     def canThreat(self, x: int, y: int, board, ctrlCheck=True):
         if x == self.x and y == self.y:
             return False
         if x < 0 or x > 7 or y < 0 or y > 7:
+            return False
+        piece = board.getCell(x, y)
+        if piece and piece.player == self.player:
             return False
         diff = (x - self.x, y - self.y)
         if not self.multipleMove:
@@ -48,18 +53,68 @@ class ShatranjPiece:
             diff = ( diff[ 0 ] / gcd, diff[ 1 ] / gcd )
             if diff not in self.possibleCaptureMoves:
                 return False
+        if not self.canJumpOverOthers and not board.isPathClear(self.x, self.y, x, y):
+            return False
         if ctrlCheck and board.wouldBeInCheck( self, x, y ):
             return False
-        return self.canJumpOverOthers or board.isPathClear(self.x, self.y, x, y)
+        return True
 
     def canCapture(self, x: int, y: int, board, ctrlCheck=True):
-        if not self.canThreat(x, y, board, ctrlCheck=ctrlCheck):
-            return False
         piece = board.getCell(x, y)
         if not piece or piece.player == self.player:
             return False
-        return self.canJumpOverOthers or board.isPathClear(self.x, self.y, x, y)
-    
+        diff = (x - self.x, y - self.y)
+        if not self.multipleMove:
+            if diff not in self.possibleCaptureMoves:
+                return False
+        else:
+            gcd = math.gcd( diff[ 0 ], diff[ 1 ] )
+            diff = ( diff[ 0 ] / gcd, diff[ 1 ] / gcd )
+            if diff not in self.possibleCaptureMoves:
+                return False
+        if not self.canJumpOverOthers and not board.isPathClear(self.x, self.y, x, y):
+            return False
+        if ctrlCheck and board.wouldBeInCheck( self, x, y ):
+            return False
+        return True
+
+    def getPossibleMoves( self, board ):
+        res = []
+        if self.possibleCaptureMoves != self.possibleRegularMoves:
+            if self.multipleMove:
+                for dir in self.possibleRegularMoves:
+                    for k in range( -7, 7 ):
+                        tox, toy = self.x + k * dir[ 0 ], self.y + k * dir[ 1 ]
+                        if 0 <= tox < 8 and 0 <= toy < 8 and self.canMove( tox, toy, board ):
+                            res.append( XY2POS( tox, toy ) )
+                for dir in self.possibleCaptureMoves:
+                    for k in range( -7, 7 ):
+                        tox, toy = self.x + k * dir[ 0 ], self.y + k * dir[ 1 ]
+                        if 0 <= tox < 8 and 0 <= toy < 8 and self.canCapture( tox, toy, board ):
+                            res.append( XY2POS( tox, toy ) )
+            else:
+                for dir in self.possibleRegularMoves:
+                    tox, toy = self.x + dir[ 0 ], self.y + dir[ 1 ]
+                    if 0 <= tox < 8 and 0 <= toy < 8 and self.canMove( tox, toy, board ):
+                        res.append( XY2POS( tox, toy ) )
+                for dir in self.possibleCaptureMoves:
+                    tox, toy = self.x + dir[ 0 ], self.y + dir[ 1 ]
+                    if 0 <= tox < 8 and 0 <= toy < 8 and self.canCapture( tox, toy, board ):
+                        res.append( XY2POS( tox, toy ) )
+        else:
+            if self.multipleMove:
+                for dir in self.possibleRegularMoves:
+                    for k in range( -7, 7 ):
+                        tox, toy = self.x + k * dir[ 0 ], self.y + k * dir[ 1 ]
+                        if 0 <= tox < 8 and 0 <= toy < 8 and ( self.canMove( tox, toy, board ) or self.canCapture( tox, toy, board ) ):
+                            res.append( XY2POS( tox, toy ) )
+            else:
+                for dir in self.possibleRegularMoves:
+                    tox, toy = self.x + dir[ 0 ], self.y + dir[ 1 ]
+                    if 0 <= tox < 8 and 0 <= toy < 8 and ( self.canMove( tox, toy, board ) or self.canCapture( tox, toy, board ) ):
+                        res.append( XY2POS( tox, toy ) )
+        return list( set( res ) )
+
     def move( self, x, y ):
         self.x = x
         self.y = y

@@ -12,17 +12,17 @@ class Board:
         self.pieces = []
         self.currentTurn = player1
         self.players = [player1, player2]
-        self.lastMove = None
         self.halfMoveClock = 0
         self.fullMoveNumber = 1
         self.pieceMap = {}
+        self.movementStack = []
 
     def addPiece(self, piece):
         assert( ( piece.x, piece.y ) not in self.pieceMap )
         self.pieceMap[ ( piece.x, piece.y ) ] = piece
         self.pieces.append(piece)
         piece.player.addPiece(piece)
-    
+
     def removePiece(self, piece):
         assert( ( piece.x, piece.y ) in self.pieceMap )
         self.pieces.remove(piece)
@@ -34,36 +34,23 @@ class Board:
         if piece:
             assert( piece.x == x and piece.y == y )
         return piece
-    
-    def moveSuccesful( self, piece, targetPiece, fromX, fromY, toX, toY ):
-        self.lastMove = {
-            "moved_piece": piece,
-            "from_pos": (fromX, fromY),
-            "to_pos": (toX, toY),
-            "captured_piece": targetPiece,
-            "prev_half_move_clock": self.halfMoveClock,
-            "prev_full_move_number": self.fullMoveNumber,
-        }
-        if isinstance(piece, Piyade) or targetPiece is not None:
+
+    def moveSuccesful( self, piece, move ):
+        if isinstance(piece, Piyade) or move[ 'capturedPieceType' ] is not None:
             self.halfMoveClock = 0
         else:
             self.halfMoveClock += 1
-        
+
         if self.currentTurn.color == 'black':
             self.fullMoveNumber += 1
-        
+
+        self.movementStack.append( move )
         self.switchTurn()
 
     def movePiece(self, piece, x, y):
         if piece.player != self.currentTurn:
             return False
-        
-        fromX = piece.x
-        fromY = piece.y
-        toX = x
-        toY = y
-        targetPiece = self.getCell( x, y )
-        
+
         # Normal Move
         canMove = piece.canMove(x, y, self)
         canCapture = piece.canCapture(x, y, self)
@@ -74,11 +61,23 @@ class Board:
         if self.wouldBeInCheck(piece, x, y):
             return False  # Cannot make a move that puts/keeps the Shah in check
 
+        move = {
+            'fromX': piece.x,
+            'fromY': piece.y,
+            'toX': x,
+            'toY': y,
+            'halfMoveClock': self.halfMoveClock,
+            'fullMoveNumber': self.fullMoveNumber,
+            'capturedPieceType': None,
+            'promoted': False,
+        } 
+
         # Move the piece and handle captures
         captured_piece = self.getCell(x, y)
         if captured_piece and canCapture:
             self.removePiece( captured_piece )
-        
+            move[ 'capturedPieceType' ] = type( captured_piece )
+
         self.removePiece( piece )
         piece.move( x, y )
         self.addPiece( piece )
@@ -88,8 +87,41 @@ class Board:
             promoted_piece = self.promotePiyade(piece)
             self.removePiece(piece)
             self.addPiece(promoted_piece)
+            move[ 'promoted' ] = True
 
-        self.moveSuccesful( piece, targetPiece, fromX, fromY, toX, toY )
+        self.moveSuccesful( piece, move )
+        return True
+
+    def undo(self):
+        if not self.movementStack:
+            return False  # No move to undo
+
+        move = self.movementStack.pop()
+
+        # Revert piece movement
+        piece = self.getCell(move['toX'], move['toY'])
+        self.removePiece(piece)
+        piece.x, piece.y = move['fromX'], move['fromY']
+        self.addPiece(piece)
+
+        # Restore captured piece if there was one
+        if move['capturedPieceType'] is not None:
+            captured_piece = move['capturedPieceType'](self.currentTurn, XY2POS(move['toX'], move['toY']))
+            captured_piece.x, captured_piece.y = move['toX'], move['toY']
+            self.addPiece(captured_piece)
+
+        # Handle Piyade promotion undo
+        if move['promoted']:
+            # The piece was promoted, so we need to revert it back to a Piyade
+            self.removePiece(piece)
+            original_piyade = Piyade(self.opponent( self.currentTurn ), XY2POS(move['fromX'], move['fromY']))
+            self.addPiece(original_piyade)
+
+        # Restore turn and clocks
+        self.currentTurn = self.opponent( self.currentTurn )
+        self.halfMoveClock = move['halfMoveClock']
+        self.fullMoveNumber = move['fullMoveNumber']
+
         return True
 
     def promotePiyade(self, piyade):
@@ -97,41 +129,43 @@ class Board:
         return Vizier(piyade.player, XY2POS(x, y))
 
     def wouldBeInCheck(self, piece, x, y):
-        original_x, original_y = piece.x, piece.y
+        tmpx, tmpy = piece.x, piece.y
+        self.removePiece( piece )
         capturedPiece = self.getCell( x, y )
         if capturedPiece:
             self.removePiece( capturedPiece )
 
-        self.removePiece( piece )
-        piece.x, piece.y = x, y
+        piece.x = x
+        piece.y = y
         self.addPiece( piece )
 
-        inCheck = self.isCheck(piece.player)
+        ret = self.isCheck()
 
         self.removePiece( piece )
-        piece.x, piece.y = original_x, original_y
+        piece.x = tmpx
+        piece.y = tmpy
         self.addPiece( piece )
-
         if capturedPiece:
             self.addPiece( capturedPiece )
-        
-        return inCheck
 
-    def isCheck(self, player):
+        return ret
+
+    def isCheck(self, player=None):
+        player = player or self.currentTurn
         shah = next((p for p in player.pieces if isinstance(p, Shah)), None)
         if not shah:
             return False
 
-        opponent = self.players[0] if player == self.players[1] else self.players[1]
+        opponent = self.opponent( player )
         for p in opponent.pieces:
             if p.canCapture(shah.x, shah.y, self, ctrlCheck=False):
                 return True
         return False
 
-    def isCheckmate(self, player):
-        if not self.isCheck(player):
+    def isCheckmate(self):
+        if not self.isCheck():
             return False
-        piecePosition = [ ( p.x, p.y ) for p in player.pieces ]
+        piecePosition = [ ( p.x, p.y ) for p in self.currentTurn.pieces ]
         for piecePos in piecePosition:
             piece = self.getCell( *piecePos )
             for x in range(8):
@@ -141,20 +175,20 @@ class Board:
         return True
 
     def isGameOver(self):
-        if self.isStalemate(self.currentTurn):
+        if self.isStalemate():
             return True
-        if self.isCheckmate(self.currentTurn):
+        if self.isCheckmate():
             return True
         if self.isDraw():
             return True
         return False
-    
+
     def winner(self):
         if self.isDraw():
             return None
-        if self.isStalemate(self.currentTurn):
+        if self.isStalemate():
             return self.opponent(self.currentTurn)
-        if self.isCheckmate(self.currentTurn):
+        if self.isCheckmate():
             return self.opponent(self.currentTurn)
         self.currentTurn
 
@@ -165,7 +199,7 @@ class Board:
         # Check shah for two shahs condition
         if len(self.pieces) == 2 and all(isinstance(piece, Shah) for piece in self.pieces):
             return True
-        
+
         piecesCurrent = self.currentTurn.pieces
         piecesOpponent = self.opponent(self.currentTurn).pieces
         if len( piecesCurrent ) == 1 and len( piecesOpponent ) == 2 and (
@@ -182,21 +216,21 @@ class Board:
                 return True
 
         return False
-    
-    def isStalemate(self, player):
-        if self.isCheck(player):
+
+    def isStalemate(self):
+        if self.isCheck():
             return False  # Not a stalemate if the player is in check
 
-        for piece in player.pieces:
+        for piece in self.currentTurn.pieces:
             for x in range(8):
                 for y in range(8):
-                    if piece.canMove(x, y, self) and not self.wouldBeInCheck(piece, x, y):
+                    if piece.canMove(x, y, self, ctrlCheck=False) and not self.wouldBeInCheck(piece, x, y):
                         return False  # Found a legal move, so not a stalemate
         return True
 
     def switchTurn(self):
         self.currentTurn = self.opponent(self.currentTurn) 
-    
+
     def isPathClear(self, x1: int, y1: int, x2: int, y2: int):
         if x1 == x2:
             stepX = 0
@@ -221,7 +255,7 @@ class Board:
             if p.canThreat(x, y, self):
                 return True
         return False
-    
+
     def isCapture(self, move):
         to_pos = POS2XY(move[2:])
         target_piece = self.getCell(*to_pos)
@@ -229,18 +263,35 @@ class Board:
             return True
         return False
 
-    def play( self, from_pos, to_pos ):
+    def getPossibleMoves( self ):
+        res = []
+        if self.isGameOver():
+            return res
+        pieces = [ p for p in self.pieces ]
+        for piece in pieces:
+            if piece.player != self.currentTurn:
+                continue
+            res += [ XY2POS( piece.x, piece.y ) + m for m in piece.getPossibleMoves( self ) ]
+
+        return res
+
+    def parseInput( self, move ):
+        if len(move) == 4:
+            return move[ :2 ], move[ 2:4 ]
+        else:
+            return None
+
+    def play( self, move ):
+        from_pos, to_pos = self.parseInput( move )
         from_pos = POS2XY( from_pos )
         to_pos = POS2XY( to_pos )
-        if not from_pos or not to_pos:
-            return False
-        
+
         piece = self.getCell(*from_pos)
         if not piece or piece.player != self.currentTurn:
             return False
-        
+
         return self.movePiece(piece, *to_pos)
-    
+
     def boardToString(self):
         # Initialize an 8x8 matrix with dots
         board = [['.' for _ in range(8)] for _ in range(8)]
@@ -279,7 +330,7 @@ class Board:
         fen += ' ' + str( self.halfMoveClock )
         fen += ' ' + str( self.fullMoveNumber )
         return fen
-    
+
     @classmethod
     def boardFromFEN(cls, fen):
         fields = fen.split()
@@ -318,3 +369,7 @@ class Board:
             'f': Fil, 'v': Vizier, 's': Shah
         }
         return piece_map[char.lower()]
+
+    @classmethod
+    def getInitialRepr( cls ):
+        return 'rhfvsfhr/pppppppp/8/8/8/8/PPPPPPPP/RHFVSFHR w 0 1'
