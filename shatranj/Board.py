@@ -190,7 +190,7 @@ class Board:
             return self.opponent(self.currentTurn)
         if self.isCheckmate():
             return self.opponent(self.currentTurn)
-        self.currentTurn
+        return self.currentTurn
 
     def opponent(self, player):
         return self.players[0] if player == self.players[1] else self.players[1]
@@ -373,3 +373,11 @@ class Board:
     @classmethod
     def getInitialRepr( cls ):
         return 'rhfvsfhr/pppppppp/8/8/8/8/PPPPPPPP/RHFVSFHR w 0 1'
+
+    @classmethod
+    def extension(cls, func):
+        """
+        A decorator to add the decorated function as a method to the class.
+        """
+        setattr(cls, func.__name__, func)
+        return func

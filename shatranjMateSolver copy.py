@@ -1,4 +1,4 @@
-from shatranj.Game import Shatranj
+from shatranj.Heuristic import Shatranj
 from shatranj.Board import Board
 
 def getFenHash(fenRepr):

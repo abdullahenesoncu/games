@@ -1,85 +1,82 @@
-from shatranj.Game import Shatranj
-from datetime import datetime
+import shatranj.Heuristic
+from shatranj.Board import Board
 import random
 
 class AlphaBetaAI:
-    def __init__(self, gameClass, maxDepth=5):
-        self.gameClass = gameClass
+    def __init__( self, maxDepth=5 ):
         self.maxDepth = maxDepth
         self.cnt = 0
-        self.totalGetPosMoves = 0.0
-    
-    def getFenHash(self, fenRepr):
-        return ' '.join(fenRepr.split()[:2])
 
-    def findBestMove(self, boardRepr, isMaximizingPlayer, fens):
-        bestScore, bestMove = self.negamax(boardRepr, self.maxDepth, float('-inf'), float('inf'), 1 if isMaximizingPlayer else -1, fens, firstMove=True)
-        print(bestScore, bestMove)
+    def heuristic( self, board ):
+        return board.getScore()
+
+    def findBestMove( self, board ):
+        currentColor = 'w' if board.currentTurn == board.players[ 0 ] else 'b'
+        _, bestMove = self.abprune( board, 0, currentColor, float('-inf'), float('inf') )
         return bestMove
-    
-    def getSamplePossibleMoves(self, heuristicallySortedPossibleMoves):
-        return heuristicallySortedPossibleMoves
-        arr = heuristicallySortedPossibleMoves[3:]
-        return heuristicallySortedPossibleMoves[:3] + random.sample(arr, min(len(arr), 3))
-    
-    def negamax(self, boardRepr, depth, alpha, beta, color, fens, firstMove=False):
+
+    def abprune( self, board, depth, color, alpha, beta ):
         self.cnt += 1
-        if self.gameClass.isGameOver(boardRepr):
-            return self.heuristic(boardRepr), None
-        if depth == 0:
-            return self.heuristic( boardRepr, soft=False ), None
-            return self.captureSearch(boardRepr, alpha, beta, color, fens)
+        if board.isGameOver():
+            return self.heuristic( board ), None
+        if depth == self.maxDepth:
+            return self.heuristic( board ), None
 
-        maxNext = float('-inf')
         bestMove = None
-        possibleMoves = [pM for pM in self.gameClass.getPossibleMoves(boardRepr) if self.getFenHash(pM[0]) not in fens]
-        possibleMovesOnlyCheck = [pM for pM in possibleMoves if self.gameClass.isCheck(pM[0])]
-        if possibleMovesOnlyCheck and color==1:
-            possibleMoves = possibleMovesOnlyCheck
-        possibleMoves = sorted([(self.heuristic(nextRepr, soft=True), nextRepr, move) for nextRepr, move in possibleMoves], reverse=True)
-        if not possibleMoves:
-            possibleMoves.append((0, boardRepr, None))
-        possibleMoves = self.getSamplePossibleMoves(possibleMoves)
-        for _, nextRepr, move in possibleMoves:
-            next, _ = self.negamax(nextRepr, depth - 1, -beta, -alpha, -color, fens)
-            next = -next
-            if next > maxNext:
-                maxNext = next
-                bestMove = move
-            #alpha = max(alpha, next)
-            #if beta <= alpha:
-            #    break
-        return maxNext, bestMove
-    
-    def captureSearch(self, boardRepr, alpha, beta, color, fens):
-        self.cnt += 1
+        possibleMoves = board.getPossibleMoves()
+        possibleShahMoves = []
+        possibleCaptureMoves = []
+        possibleRegularMoves = []
 
-        maxEval = color * self.heuristic(boardRepr)
-        bestMove = None
-        possibleMoves = [pM for pM in self.gameClass.getPossibleMoves(boardRepr) if self.getFenHash(pM[0]) not in fens]
-        possibleMoves = [pM for pM in possibleMoves if self.gameClass.isCapture(boardRepr, pM[1]) or self.gameClass.isCheck(pM[0])]
-        possibleMoves = sorted([(color*-1*self.heuristic(nextRepr, soft=True), nextRepr, move) for nextRepr, move in possibleMoves])
-        for score, nextRepr, move in possibleMoves:
-            eval, _ = self.captureSearch(nextRepr, -beta, -alpha, -color, fens)
-            eval = -eval
-            if eval > maxEval:
-                maxEval = eval
-                bestMove = move
-            alpha = max(alpha, eval)
-            if beta <= alpha:
-                break
-        return maxEval, bestMove
+        for move in possibleMoves:
+            if False and board.isCapture( move ):
+                possibleCaptureMoves.append( move )
+            else:
+                board.play( move )
+                if board.isCheck():
+                    possibleShahMoves.append( move )
+                else:
+                    possibleRegularMoves.append( ( self.heuristic( board ), move ) )
+                board.undo()
 
-    def heuristic(self, boardRepr, soft=False):
-        color = 1 if 'w' in boardRepr else -1
-        return color * self.gameClass.getScore(boardRepr, soft=soft)
+        possibleMoves = possibleShahMoves + possibleCaptureMoves
+        if len( possibleMoves ) < 10:
+            possibleRegularMoves.sort( reverse=( color == 'w' ) )
+            possibleMoves += [ m[ 1 ] for m in possibleRegularMoves[ : 10 - len( possibleMoves ) ] ]
+
+        if color == 'w':
+            maxScore = float( '-inf' )
+            bestMove = None
+            for move in possibleMoves:
+                board.play( move )
+                nextScore, _ = self.abprune( board, depth + 1, 'b', alpha, beta )
+                if bestMove == None or maxScore < nextScore:
+                    maxScore = nextScore
+                    bestMove = move
+                board.undo()
+                alpha = max( alpha, maxScore )
+                if beta <= alpha:
+                    break  # Beta cut-off
+            return maxScore, bestMove
+        else:
+            minScore = float( 'inf' )
+            bestMove = None
+            for move in possibleMoves:
+                board.play( move )
+                nextScore, _ = self.abprune( board, depth + 1, 'w', alpha, beta )
+                if bestMove == None or minScore > nextScore:
+                    minScore = nextScore
+                    bestMove = move
+                board.undo()
+                beta = min( beta, minScore )
+                if beta <= alpha:
+                    break  # Alpha cut-off
+            return minScore, bestMove
 
 if __name__ == '__main__':
-    gameClass = Shatranj
-    ai = AlphaBetaAI(gameClass, maxDepth=5)
-
-    game = gameClass('Ali', 'Veli')
-    from shatranj.Board import Board
+    ai = AlphaBetaAI(maxDepth=5)
+    
+    '''
     game.board = Board.boardFromFEN('1r1r4/8/1h6/2p5/2P5/1HS5/R3R3/1s6 b 0 1')
     game.board = Board.boardFromFEN('8/1p5s/3f4/8/2p5/p1P5/P1P2Pv1/5S2 w 2 89')
     #game.board = Board.boardFromFEN('1vr1sr2/5p2/2P1f1p1/pP4Fp/hp2H2R/h1pP2P1/P3VP2/SFv1HR2 w 0 1')
@@ -89,28 +86,25 @@ if __name__ == '__main__':
     game.board = Board.boardFromFEN('1rf3V1/2Pp1H2/8/2Fp1V1R/1p1hPH2/p5s1/1rPpPp2/SFh3v1 w 0 1') # 6. Mat sorusu son 3 hamle, 3 hamlede cozduk
     game.board = Board.boardFromFEN('8/2p5/R1Vv4/pP3F1p/4pff1/FPP1s3/P3rrhR/1H1S4 w 0 1') # 7. Mat sorusu son 3 hamle, 3 hamlede cozduk
     game.board = Board.boardFromFEN('rff2vr1/hHHph3/1pp4p/5Pp1/4P3/sVPFF3/P2S4/R7 w 0 1') # 8. Mat sorusu son 3 hamle, 3 hamlede cozduk
-
+    '''
+    board = Board.boardFromFEN( Board.getInitialRepr() )
     from datetime import datetime
     starttime = datetime.now()
     fens = []
     step = 0
     while True:
-        print(game.board.boardToString())
-        print(game.board.boardToFEN())
-        # fens.append(' '.join(game.board.boardToFEN().split()[:2]))
-        if game.isGameOver(game.board.boardToFEN()):
-            winner = game.winner(game.board.boardToFEN())
-            if winner == 1:
-                print(f'{game.board.players[0].name} wins')
-            if winner == -1:
-                print(f'{game.board.players[1].name} wins')
-            if winner == 0:
+        print(board.boardToString())
+        print(board.boardToFEN())
+        if board.isGameOver():
+            winner = board.winner()
+            if winner is None:
                 print('Draw')
+            else:
+                print(f'{winner.name} wins')
             print( step )
             break
-        move = ai.findBestMove(game.board.boardToFEN(), game.board.currentTurn == game.board.players[0], fens)
-        game.play(move)
+        move = ai.findBestMove(board)
+        board.play(move)
         step += 1
         print(ai.cnt)
-        print(game.ELLAPSED, game.CNT)
         print(datetime.now() - starttime)

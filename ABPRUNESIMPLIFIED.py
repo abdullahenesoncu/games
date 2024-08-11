@@ -1,4 +1,4 @@
-from shatranj.Game import Shatranj
+from shatranj.Heuristic import Shatranj
 from datetime import datetime
 import random
 

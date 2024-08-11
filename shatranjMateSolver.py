@@ -1,18 +1,6 @@
 from shatranj.Board import Board
 from datetime import datetime
 
-def getFenHash(fenRepr):
-    return ' '.join(fenRepr.split()[:2])
-
-class Node:
-    def __init__( self, repr, score=None ):
-        self.repr = repr
-        self.score = score
-        self.childs = []
-    
-    def addChild( self, node, move ):
-        self.childs.append( ( node, move ) )
-
 class DFSAI:
     def __init__(self, maxDepth=5):
         self.maxDepth = maxDepth
@@ -94,7 +82,7 @@ class Mate:
                         print(f'{board.players[1].name} wins')
                     if winner == 0:
                         print('Draw')
-                    print( f'mate found in {step}' )
+                    print( f'mate found in {step} half moves' )
                 break
 
             move = ai.findBestMove(board, self.mateExpectedColor, states)
@@ -107,6 +95,15 @@ class Mate:
 
 
 if __name__ == '__main__':
+    
+    
+    mate = Mate( '4s3/8/6S1/5HF1/7p/P4PrP/7R/3Rr3 w 0 1', 'w', 5 )
+    mate.run( verbose=True )
+    import sys
+    sys.exit( 0 )
+    
+    mate = Mate( '1s6/8/8/8/5S2/3R4/2R5/8 w 0 1', 'w', 3 ) # Merdiven matı
+    mate.run( verbose=True )
 
     mate = Mate( '1vr2r2/5p2/2P1fHp1/pP1R2Fp/hp6/h1pP1HPs/P3VP2/SFv2R2 w 0 1', 'w', 3 ) # 3. Mat sorusu
     mate.run( verbose=True )

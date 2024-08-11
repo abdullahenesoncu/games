@@ -3,7 +3,7 @@ from qirkat.Game import Qirkat
 from checker.Game import Checker
 from nineMenMorris.Game import NineMenMorris
 from royalGameOfUr.Game import RoyalGameOfUr
-from shatranj.Game import Shatranj
+from shatranj.Heuristic import Shatranj
 
 class TranspositionTable:
     def __init__(self):

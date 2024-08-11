@@ -4,7 +4,7 @@ from checker.Game import Checker
 from tictactoe.Game import TicTacToe
 from qirkat.Game import Qirkat
 from nineMenMorris.Game import NineMenMorris
-from shatranj.Game import Shatranj
+from shatranj.Heuristic import Shatranj
 
 class Node:
     def __init__(self, board_state, gameClass, parent=None, move=None):
