@@ -99,8 +99,6 @@ if __name__ == '__main__':
     
     mate = Mate( '4s3/8/6S1/5HF1/7p/P4PrP/7R/3Rr3 w 0 1', 'w', 5 )
     mate.run( verbose=True )
-    import sys
-    sys.exit( 0 )
     
     mate = Mate( '1s6/8/8/8/5S2/3R4/2R5/8 w 0 1', 'w', 3 ) # Merdiven matı
     mate.run( verbose=True )
